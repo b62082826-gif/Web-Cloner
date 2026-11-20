@@ -1,0 +1,23 @@
+## .NET / C#
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.cache
+*.ilproj
+*.csproj.user
+*.vsidx
+*.vssscc
+.vs/
+
+## Downloaded output folders (if tested locally)
+*_202*/
+output/
+
+## OS / Editor
+.DS_Store
+Thumbs.db
