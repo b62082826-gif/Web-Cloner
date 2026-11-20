@@ -1,4 +1,5 @@
 
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -9,9 +10,24 @@ namespace WebGrabberPro;
 
 public sealed class MainForm : Form
 {
-    private readonly WebView2 _web = new() { Dock = DockStyle.Fill };
+    [DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(
+        IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    private const int WM_NCLBUTTONDOWN = 0xA1;
+    private const int HTCAPTION = 0x2;
+
+    private readonly WebView2 _web = new()
+    {
+        Dock = DockStyle.Fill
+    };
+
     private readonly WebScraperService _scraper = new();
     private CancellationTokenSource? _cancel;
+    private bool _isDownloading;
 
     public MainForm()
     {
@@ -23,6 +39,7 @@ public sealed class MainForm : Form
 
         Controls.Add(_web);
         Load += OnLoad;
+        FormClosing += OnFormClosing;
     }
 
     private async void OnLoad(object? sender, EventArgs e)
@@ -31,8 +48,11 @@ public sealed class MainForm : Form
         {
             await _web.EnsureCoreWebView2Async();
 
-            _web.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-            _web.CoreWebView2.Settings.AreDevToolsEnabled = false;
+            var settings = _web.CoreWebView2.Settings;
+            settings.AreDefaultContextMenusEnabled = false;
+            settings.AreDevToolsEnabled = false;
+            settings.IsStatusBarEnabled = false;
+
             _web.CoreWebView2.WebMessageReceived += OnWebMessage;
 
             var page = Path.Combine(
@@ -41,12 +61,17 @@ public sealed class MainForm : Form
                 "index.html"
             );
 
+            if (!File.Exists(page))
+                throw new FileNotFoundException(
+                    "ไม่พบไฟล์ wwwroot/index.html"
+                );
+
             _web.CoreWebView2.Navigate(new Uri(page).AbsoluteUri);
         }
         catch (Exception ex)
         {
             MessageBox.Show(
-                "ไม่สามารถเริ่ม WebView2 ได้ กรุณาติดตั้ง Microsoft Edge WebView2 Runtime\n\n" + ex.Message,
+                "ไม่สามารถเปิดโปรแกรมได้\n\n" + ex.Message,
                 "WebGrabber Pro",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error
@@ -62,58 +87,49 @@ public sealed class MainForm : Form
         {
             using var json = JsonDocument.Parse(e.WebMessageAsJson);
             var root = json.RootElement;
-            var action = root.GetProperty("action").GetString();
 
-            if (action == "minimize")
-            {
-                WindowState = FormWindowState.Minimized;
+            if (!root.TryGetProperty("action", out var actionElement))
                 return;
-            }
 
-            if (action == "close")
+            var action = actionElement.GetString();
+
+            switch (action)
             {
-                Close();
-                return;
-            }
+                case "minimize":
+                    WindowState = FormWindowState.Minimized;
+                    break;
 
-            if (action == "browse")
-            {
-                using var dialog = new FolderBrowserDialog
-                {
-                    Description = "เลือกโฟลเดอร์บันทึกเว็บไซต์"
-                };
+                case "close":
+                    Close();
+                    break;
 
-                if (dialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    Post(new
-                    {
-                        type = "folder",
-                        path = dialog.SelectedPath
-                    });
-                }
+                case "browse":
+                    BrowseFolder();
+                    break;
 
-                return;
-            }
+                case "cancel":
+                    _cancel?.Cancel();
+                    break;
 
-            if (action == "cancel")
-            {
-                _cancel?.Cancel();
-                return;
-            }
+                case "download":
+                    if (_isDownloading)
+                        return;
 
-            if (action == "download")
-            {
-                var request = JsonSerializer.Deserialize<DownloadRequest>(
-                    root.GetProperty("data").GetRawText(),
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }
-                );
+                    if (!root.TryGetProperty("data", out var data))
+                        return;
 
-                if (request == null) return;
+                    var request = JsonSerializer.Deserialize<DownloadRequest>(
+                        data.GetRawText(),
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                    );
 
-                await StartDownloadAsync(request);
+                    if (request != null)
+                        await StartDownloadAsync(request);
+
+                    break;
             }
         }
         catch (Exception ex)
@@ -126,13 +142,33 @@ public sealed class MainForm : Form
         }
     }
 
+    private void BrowseFolder()
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "เลือกโฟลเดอร์สำหรับบันทึกเว็บไซต์"
+        };
+
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            Post(new
+            {
+                type = "folder",
+                path = dialog.SelectedPath
+            });
+        }
+    }
+
     private async Task StartDownloadAsync(DownloadRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.OutputFolder))
-            throw new InvalidOperationException("กรุณาเลือกโฟลเดอร์บันทึกไฟล์");
+            throw new InvalidOperationException(
+                "กรุณาเลือกโฟลเดอร์บันทึกไฟล์"
+            );
 
         if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != "http" && uri.Scheme != "https"))
+            (uri.Scheme != Uri.UriSchemeHttp &&
+             uri.Scheme != Uri.UriSchemeHttps))
         {
             throw new InvalidOperationException("URL ไม่ถูกต้อง");
         }
@@ -147,10 +183,11 @@ public sealed class MainForm : Form
             hostFolder + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
         );
 
+        _isDownloading = true;
         _cancel = new CancellationTokenSource();
 
-        var progress = new Progress<(int percent, string message)>(p =>
-            Post(new
+        var progress = new Progress<(int percent, string message)>(
+            p => Post(new
             {
                 type = "progress",
                 percent = p.percent,
@@ -160,7 +197,11 @@ public sealed class MainForm : Form
 
         try
         {
-            Post(new { type = "started", message = "เริ่มดาวน์โหลด..." });
+            Post(new
+            {
+                type = "started",
+                message = "กำลังเริ่มดาวน์โหลด..."
+            });
 
             await _scraper.DownloadAsync(
                 request.Url,
@@ -173,7 +214,7 @@ public sealed class MainForm : Form
             Post(new
             {
                 type = "done",
-                message = "บันทึกสำเร็จ",
+                message = "ดาวน์โหลดสำเร็จ",
                 path = output
             });
         }
@@ -182,19 +223,34 @@ public sealed class MainForm : Form
             Post(new
             {
                 type = "cancelled",
-                message = "ยกเลิกแล้ว"
+                message = "ยกเลิกการดาวน์โหลดแล้ว"
+            });
+        }
+        catch (Exception ex)
+        {
+            Post(new
+            {
+                type = "error",
+                message = ex.Message
             });
         }
         finally
         {
-            _cancel.Dispose();
+            _cancel?.Dispose();
             _cancel = null;
+            _isDownloading = false;
         }
+    }
+
+    private void OnFormClosing(object? sender, FormClosingEventArgs e)
+    {
+        _cancel?.Cancel();
     }
 
     private void Post(object value)
     {
-        if (_web.CoreWebView2 == null) return;
+        if (_web.CoreWebView2 == null || _web.IsDisposed)
+            return;
 
         _web.CoreWebView2.PostWebMessageAsJson(
             JsonSerializer.Serialize(value)
