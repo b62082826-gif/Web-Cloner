@@ -2,7 +2,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace WebGrabber.Pro;
+namespace WebGrabberPro;
 
 internal static class Program
 {
