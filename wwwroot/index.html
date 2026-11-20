@@ -1,1 +1,365 @@
 
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGrabber Pro</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #0c111c;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .titlebar {
+            height: 42px;
+            background: #101827;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid #202c40;
+            user-select: none;
+        }
+
+        .brand {
+            color: #35aaff;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .window-buttons button {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            width: 35px;
+            height: 30px;
+            cursor: pointer;
+        }
+
+        .window-buttons button:hover {
+            background: #26364e;
+            color: white;
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 65px auto;
+            padding: 25px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #8998ad;
+            margin-bottom: 35px;
+        }
+
+        .panel {
+            background: #131d2d;
+            border: 1px solid #24334a;
+            border-radius: 14px;
+            padding: 25px;
+        }
+
+        label {
+            display: block;
+            color: #aabbd0;
+            margin-bottom: 9px;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            background: #0c1422;
+            border: 1px solid #30415c;
+            border-radius: 8px;
+            padding: 13px;
+            color: white;
+            outline: none;
+            margin-bottom: 20px;
+        }
+
+        input:focus, select:focus {
+            border-color: #2196f3;
+        }
+
+        .folder-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .folder-row input {
+            flex: 1;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .secondary {
+            background: #263750;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 18px;
+            height: 44px;
+        }
+
+        .primary {
+            width: 100%;
+            background: linear-gradient(90deg, #0878df, #00a8ff);
+            border: none;
+            border-radius: 9px;
+            padding: 15px;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            margin-top: 5px;
+        }
+
+        .primary:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .cancel {
+            width: 100%;
+            background: #263750;
+            border: none;
+            border-radius: 9px;
+            padding: 13px;
+            color: white;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-area {
+            margin-top: 25px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            color: #9eacc0;
+            font-size: 13px;
+            margin-bottom: 9px;
+        }
+
+        .progress-track {
+            height: 8px;
+            background: #26364d;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #16a5ff;
+            transition: width .2s;
+        }
+
+        #status {
+            margin-top: 18px;
+            color: #a8b8cb;
+            font-size: 14px;
+            min-height: 20px;
+            overflow-wrap: anywhere;
+        }
+
+        .footer {
+            text-align: center;
+            color: #53647c;
+            font-size: 12px;
+            margin-top: 30px;
+        }
+
+        .success {
+            color: #40d69a !important;
+        }
+
+        .error {
+            color: #ff6b6b !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="titlebar">
+        <div class="brand">WEBGRABBER PRO</div>
+
+        <div class="window-buttons">
+            <button onclick="send('minimize')">—</button>
+            <button onclick="send('close')">✕</button>
+        </div>
+    </div>
+
+    <main class="container">
+        <h1>Website Downloader</h1>
+        <div class="subtitle">
+            Download website files and save them locally.
+        </div>
+
+        <section class="panel">
+            <label>Website URL</label>
+            <input
+                id="url"
+                type="url"
+                placeholder="https://example.com"
+            >
+
+            <label>Save Location</label>
+
+            <div class="folder-row">
+                <input
+                    id="folder"
+                    type="text"
+                    placeholder="Select output folder..."
+                    readonly
+                >
+
+                <button class="secondary" onclick="send('browse')">
+                    Browse
+                </button>
+            </div>
+
+            <label>Download Mode</label>
+
+            <select id="mode">
+                <option value="separated">Separated Assets</option>
+                <option value="single">Single HTML Bundle (Coming Soon)</option>
+            </select>
+
+            <button
+                id="download"
+                class="primary"
+                onclick="downloadWebsite()"
+            >
+                DOWNLOAD WEBSITE
+            </button>
+
+            <button
+                id="cancel"
+                class="cancel"
+                onclick="send('cancel')"
+            >
+                CANCEL DOWNLOAD
+            </button>
+
+            <div class="progress-area">
+                <div class="progress-info">
+                    <span id="progressText">Ready</span>
+                    <span id="percent">0%</span>
+                </div>
+
+                <div class="progress-track">
+                    <div id="progress" class="progress-fill"></div>
+                </div>
+            </div>
+
+            <div id="status">Ready to download.</div>
+        </section>
+
+        <div class="footer">
+            WEBGRABBER PRO · WINDOWS DESKTOP APPLICATION
+        </div>
+    </main>
+
+    <script>
+        const $ = id => document.getElementById(id);
+
+        function send(action, data = {}) {
+            if (window.chrome?.webview) {
+                window.chrome.webview.postMessage({
+                    action,
+                    data
+                });
+            }
+        }
+
+        function downloadWebsite() {
+            const url = $("url").value.trim();
+            const folder = $("folder").value.trim();
+
+            if (!url || !folder) {
+                showStatus("Please enter URL and select folder.", "error");
+                return;
+            }
+
+            send("download", {
+                url,
+                outputFolder: folder,
+                mode: $("mode").value
+            });
+        }
+
+        function showStatus(message, type = "") {
+            $("status").textContent = message;
+            $("status").className = type;
+        }
+
+        if (window.chrome?.webview) {
+            window.chrome.webview.addEventListener(
+                "message",
+                event => {
+                    const data = event.data;
+
+                    if (data.type === "folder") {
+                        $("folder").value = data.path;
+                    }
+
+                    if (data.type === "started") {
+                        $("download").disabled = true;
+                        $("cancel").style.display = "block";
+                        $("progress").style.width = "0%";
+                        $("percent").textContent = "0%";
+                        showStatus(data.message);
+                    }
+
+                    if (data.type === "progress") {
+                        $("progress").style.width = data.percent + "%";
+                        $("percent").textContent = data.percent + "%";
+                        $("progressText").textContent = data.message;
+                    }
+
+                    if (data.type === "done") {
+                        finish();
+                        $("progress").style.width = "100%";
+                        $("percent").textContent = "100%";
+                        showStatus(data.message + ": " + data.path, "success");
+                    }
+
+                    if (data.type === "cancelled") {
+                        finish();
+                        showStatus(data.message);
+                    }
+
+                    if (data.type === "error") {
+                        finish();
+                        showStatus(data.message, "error");
+                    }
+                }
+            );
+        }
+
+        function finish() {
+            $("download").disabled = false;
+            $("cancel").style.display = "none";
+        }
+    </script>
+</body>
+</html>
+
