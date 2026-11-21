@@ -17,6 +17,13 @@ public sealed class MainForm : Form
     private static extern IntPtr SendMessage(
         IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd, int attribute, ref int value, int size);
+
+    private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    private const int DWMWCP_ROUND = 2;
+
     private const int WM_NCLBUTTONDOWN = 0xA1;
     private const int HTCAPTION = 0x2;
 
@@ -41,12 +48,39 @@ public sealed class MainForm : Form
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(900, 620);
-        Size = new Size(1120, 760);
+
+        var area = Screen.PrimaryScreen?.WorkingArea
+            ?? new Rectangle(0, 0, 1280, 800);
+
+        Size = new Size(
+            Math.Min(1160, area.Width - 40),
+            Math.Min(800, area.Height - 40));
         BackColor = Color.FromArgb(12, 17, 28);
 
         Controls.Add(_web);
         Load += OnLoad;
         FormClosing += OnFormClosing;
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+
+        try
+        {
+            // มุมโค้งแบบ Windows 11 (Windows 10 จะไม่มีผล)
+            var preference = DWMWCP_ROUND;
+
+            DwmSetWindowAttribute(
+                Handle,
+                DWMWA_WINDOW_CORNER_PREFERENCE,
+                ref preference,
+                sizeof(int));
+        }
+        catch
+        {
+            // ไม่รองรับก็ไม่เป็นไร
+        }
     }
 
     private async void OnLoad(object? sender, EventArgs e)
@@ -95,7 +129,7 @@ public sealed class MainForm : Form
 
             if (!File.Exists(page))
                 throw new FileNotFoundException(
-                    "ไม่พบไฟล์ wwwroot/index.html"
+                    "Could not find wwwroot/index.html"
                 );
 
             _web.CoreWebView2.Navigate(new Uri(page).AbsoluteUri);
@@ -103,9 +137,9 @@ public sealed class MainForm : Form
         catch (Exception ex)
         {
             MessageBox.Show(
-                "ไม่สามารถเปิดโปรแกรมได้\n\n" + ex.Message +
-                "\n\nหากยังไม่มี Microsoft Edge WebView2 Runtime " +
-                "ให้ติดตั้งจาก https://developer.microsoft.com/microsoft-edge/webview2/",
+                "WebGrabber could not start.\n\n" + ex.Message +
+                "\n\nIf the Microsoft Edge WebView2 Runtime is not installed, " +
+                "install it from https://developer.microsoft.com/microsoft-edge/webview2/",
                 "WebGrabber Pro",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error
@@ -131,6 +165,19 @@ public sealed class MainForm : Form
             {
                 case "minimize":
                     WindowState = FormWindowState.Minimized;
+                    break;
+
+                case "maximize":
+                    if (WindowState == FormWindowState.Maximized)
+                    {
+                        WindowState = FormWindowState.Normal;
+                    }
+                    else
+                    {
+                        // ไม่ให้หน้าต่างแบบไม่มีกรอบทับ Taskbar ตอนขยาย
+                        MaximizedBounds = Screen.FromControl(this).WorkingArea;
+                        WindowState = FormWindowState.Maximized;
+                    }
                     break;
 
                 case "close":
@@ -189,7 +236,7 @@ public sealed class MainForm : Form
     {
         using var dialog = new FolderBrowserDialog
         {
-            Description = "เลือกโฟลเดอร์สำหรับบันทึกเว็บไซต์"
+            Description = "Choose a folder to save websites into"
         };
 
         if (dialog.ShowDialog(this) == DialogResult.OK)
@@ -238,14 +285,14 @@ public sealed class MainForm : Form
     {
         if (string.IsNullOrWhiteSpace(request.OutputFolder))
             throw new InvalidOperationException(
-                "กรุณาเลือกโฟลเดอร์บันทึกไฟล์"
+                "Please choose a folder to save into."
             );
 
         if (!Uri.TryCreate(request.Url?.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp &&
              uri.Scheme != Uri.UriSchemeHttps))
         {
-            throw new InvalidOperationException("URL ไม่ถูกต้อง");
+            throw new InvalidOperationException("That URL is not valid.");
         }
 
         var output = Path.Combine(
@@ -274,7 +321,7 @@ public sealed class MainForm : Form
             Post(new
             {
                 type = "started",
-                message = "กำลังเริ่มดาวน์โหลด..."
+                message = "Starting download..."
             });
 
             var result = await _scraper.DownloadAsync(
@@ -290,7 +337,7 @@ public sealed class MainForm : Form
             Post(new
             {
                 type = "done",
-                message = "ดาวน์โหลดสำเร็จ",
+                message = "Download complete",
                 path = output,
                 entry = result.EntryFile,
                 files = result.Files,
@@ -305,7 +352,7 @@ public sealed class MainForm : Form
             Post(new
             {
                 type = "cancelled",
-                message = "ยกเลิกการดาวน์โหลดแล้ว"
+                message = "Download cancelled."
             });
         }
         catch (Exception ex)
@@ -314,7 +361,7 @@ public sealed class MainForm : Form
 
             // HttpClient หมดเวลาจะโยน TaskCanceledException โดยที่ผู้ใช้ไม่ได้กดยกเลิก
             var message = ex is OperationCanceledException
-                ? "เซิร์ฟเวอร์ตอบสนองช้าเกินไป (หมดเวลา)"
+                ? "The server took too long to respond (timed out)."
                 : ex.Message;
 
             Post(new

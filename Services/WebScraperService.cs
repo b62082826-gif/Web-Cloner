@@ -64,7 +64,7 @@ public sealed class WebScraperService : IWebScraperService
         if (!Uri.TryCreate(url?.Trim(), UriKind.Absolute, out var baseUri) ||
             !IsHttp(baseUri))
         {
-            throw new InvalidOperationException("URL ไม่ถูกต้อง");
+            throw new InvalidOperationException("That URL is not valid.");
         }
 
         Directory.CreateDirectory(outputFolder);
@@ -429,7 +429,7 @@ public sealed class WebScraperService : IWebScraperService
         {
             _ct = ct;
 
-            _progress?.Report((5, "กำลังดาวน์โหลดหน้าเว็บ..."));
+            _progress?.Report((5, "Downloading the page..."));
 
             using var request = new HttpRequestMessage(HttpMethod.Get, pageUri);
             using var response = await Http.SendAsync(
@@ -462,7 +462,7 @@ public sealed class WebScraperService : IWebScraperService
                 baseNode.Remove();
             }
 
-            _progress?.Report((15, "กำลังวิเคราะห์ไฟล์ในหน้าเว็บ..."));
+            _progress?.Report((15, "Looking for files in the page..."));
 
             var jobs = new List<Task<Action>>();
 
@@ -497,7 +497,7 @@ public sealed class WebScraperService : IWebScraperService
                 new UTF8Encoding(false),
                 ct);
 
-            _progress?.Report((100, "บันทึกเว็บไซต์เรียบร้อย"));
+            _progress?.Report((100, "Website saved"));
 
             return new DownloadResult(
                 entry,
@@ -1136,7 +1136,7 @@ public sealed class WebScraperService : IWebScraperService
             if (bytes == null)
             {
                 Interlocked.Increment(ref _failed);
-                Report("ดาวน์โหลดไม่สำเร็จ: " + uri.Host);
+                Report("Failed: " + uri.Host);
                 return null;
             }
 
@@ -1194,7 +1194,7 @@ public sealed class WebScraperService : IWebScraperService
             Interlocked.Increment(ref _ok);
             Interlocked.Add(ref _bytes, bytes.LongLength);
 
-            Report("ดาวน์โหลดแล้ว " + _done + "/" + _total + ": " + fileName);
+            Report("Downloaded " + _done + "/" + _total + ": " + fileName);
 
             return asset;
         }
