@@ -3,29 +3,28 @@
 const $ = (id) => document.getElementById(id);
 
 const MAX_LOG = 200;
-const MAX_HISTORY = 8;
+const MAX_HISTORY = 6;
 
 const STORE_FOLDER = "webgrabber.folder";
 const STORE_MODE = "webgrabber.mode";
 const STORE_HISTORY = "webgrabber.history";
 
 const MODE_HINTS = {
-    separated: "บันทึกเป็น index.html พร้อมโฟลเดอร์ css, js, images และ fonts แก้ไขต่อได้ง่าย",
-    single: "รวม CSS, JavaScript, รูปและฟอนต์ไว้ในไฟล์ .html ไฟล์เดียว ส่งต่อง่าย แต่ไฟล์จะใหญ่"
+    separated: "Saves index.html plus css, js, images and fonts folders. Easy to edit.",
+    single: "Packs everything into one .html file. Easy to share, but larger."
 };
 
 let isDownloading = false;
 let startedAt = 0;
 let timer = null;
-let currentRequest = null; // งานที่กำลังทำ ใช้บันทึกประวัติ
-let lastDone = null;
+let currentRequest = null; // the job in progress, used for the history entry
 
-/* ---------- ตัวช่วย ---------- */
+/* ---------- helpers ---------- */
 
 function store(key, value) {
     try {
         localStorage.setItem(key, value);
-    } catch { /* บันทึกไม่ได้ก็ไม่เป็นไร */ }
+    } catch { /* fine if it can't be saved */ }
 }
 
 function load(key, fallback = "") {
@@ -38,12 +37,16 @@ function load(key, fallback = "") {
 
 function send(action, data = {}) {
     if (!window.chrome?.webview) {
-        showNote("หน้านี้ต้องเปิดผ่านโปรแกรม WebGrabber (ต้องมี Microsoft WebView2)");
+        showNote("Open this page through the WebGrabber app (Microsoft WebView2 is required).");
         return false;
     }
 
     window.chrome.webview.postMessage({ action, data });
     return true;
+}
+
+function plural(count, word) {
+    return count + " " + word + (count === 1 ? "" : "s");
 }
 
 function formatBytes(bytes) {
@@ -59,19 +62,9 @@ function formatBytes(bytes) {
 function formatDuration(ms) {
     const seconds = Math.max(0, Math.round(ms / 1000));
 
-    if (seconds < 60) return seconds + " วินาที";
+    if (seconds < 60) return seconds + " s";
 
-    return Math.floor(seconds / 60) + " นาที " + (seconds % 60) + " วินาที";
-}
-
-function timeAgo(timestamp) {
-    const seconds = Math.round((Date.now() - timestamp) / 1000);
-
-    if (seconds < 60) return "เมื่อสักครู่";
-    if (seconds < 3600) return Math.floor(seconds / 60) + " นาทีที่แล้ว";
-    if (seconds < 86400) return Math.floor(seconds / 3600) + " ชั่วโมงที่แล้ว";
-
-    return Math.floor(seconds / 86400) + " วันที่แล้ว";
+    return Math.floor(seconds / 60) + " min " + (seconds % 60) + " s";
 }
 
 function hostOf(url) {
@@ -92,7 +85,7 @@ function normalizeUrl(value) {
 
     if (!text) return "";
 
-    // พิมพ์ example.com โดยไม่ใส่ https:// ก็ใช้ได้
+    // typing example.com without https:// works too
     if (!/^[a-z][a-z0-9+.-]*:/i.test(text)) {
         text = "https://" + text;
     }
@@ -100,27 +93,18 @@ function normalizeUrl(value) {
     return text;
 }
 
-function svgIcon(path) {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+function isValidUrl(value) {
+    try {
+        const parsed = new URL(normalizeUrl(value));
 
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("fill", "none");
-    svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "1.6");
-    svg.setAttribute("stroke-linecap", "round");
-    svg.setAttribute("stroke-linejoin", "round");
-
-    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    p.setAttribute("d", path);
-    svg.appendChild(p);
-
-    return svg;
+        return ["http:", "https:"].includes(parsed.protocol) &&
+            (parsed.hostname.includes(".") || parsed.hostname === "localhost");
+    } catch {
+        return false;
+    }
 }
 
-const ICON_FOLDER = "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z";
-const ICON_FILE = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5zM14 3v5h5";
-
-/* ---------- แสดงผล ---------- */
+/* ---------- display ---------- */
 
 function setScreen(name) {
     document.body.dataset.screen = name;
@@ -137,6 +121,16 @@ function markInvalid(invalid) {
     $("urlWrap").classList.toggle("invalid", invalid);
 }
 
+// the thick bar under the address fills once the link looks valid
+function updateUrlFill() {
+    const text = $("url").value.trim();
+
+    $("urlFill").style.width =
+        text && (isValidUrl(text) || $("urlWrap").classList.contains("invalid"))
+            ? "100%"
+            : "0";
+}
+
 function setProgress(percent) {
     const value = Math.max(0, Math.min(100, Number(percent) || 0));
 
@@ -151,7 +145,7 @@ function startTimer() {
     clearInterval(timer);
     timer = setInterval(() => {
         $("elapsed").textContent =
-            "ใช้เวลา " + formatDuration(Date.now() - startedAt);
+            "Elapsed " + formatDuration(Date.now() - startedAt);
     }, 500);
 }
 
@@ -164,7 +158,7 @@ function stopTimer() {
 
 function clearLog() {
     $("log").innerHTML = "";
-    $("logCount").textContent = "รอรายการแรก";
+    $("logCount").textContent = "Waiting for the first file";
 }
 
 function addLog(message, kind = "") {
@@ -182,7 +176,7 @@ function addLog(message, kind = "") {
     }
 
     list.scrollTop = list.scrollHeight;
-    $("logCount").textContent = list.children.length + " รายการ";
+    $("logCount").textContent = plural(list.children.length, "item");
 }
 
 function showDone(data) {
@@ -192,17 +186,17 @@ function showDone(data) {
     const took = stopTimer();
 
     $("statSize").textContent = formatBytes(data.bytes);
-    $("statFiles").textContent = files + " ไฟล์";
-    $("statFailed").textContent = failed + " ไฟล์";
+    $("statFiles").textContent = plural(files, "file");
+    $("statFailed").textContent = plural(failed, "file");
     $("statFailed").classList.toggle("has-bad", failed > 0);
 
     $("doneSub").textContent =
         hostOf(currentRequest?.url || "") +
-        (took ? " · ใช้เวลา " + formatDuration(took) : "");
+        (took ? " · took " + formatDuration(took) : "");
 
     $("donePath").textContent = data.path || "";
 
-    // รีเซ็ตแถบก่อน แล้วค่อยเลื่อนให้เห็นแอนิเมชัน
+    // reset the bars first so the fill animates
     $("barOk").style.width = "0";
     $("barFail").style.width = "0";
 
@@ -214,7 +208,7 @@ function showDone(data) {
     }));
 }
 
-function showError(title, message, eyebrow = "ดาวน์โหลดไม่สำเร็จ") {
+function showError(title, message, eyebrow = "Download failed") {
     stopTimer();
 
     $("errEyebrow").textContent = eyebrow;
@@ -224,7 +218,7 @@ function showError(title, message, eyebrow = "ดาวน์โหลดไม�
     setScreen("error");
 }
 
-/* ---------- ประวัติ ---------- */
+/* ---------- recent downloads ---------- */
 
 function readHistory() {
     try {
@@ -248,99 +242,51 @@ function pushHistory(entry) {
 function renderHistory() {
     const list = $("history");
     const items = readHistory();
-    const maxBytes = Math.max(1, ...items.map((item) => Number(item.bytes) || 0));
 
     list.innerHTML = "";
-    $("clearHistory").style.visibility = items.length ? "visible" : "hidden";
-
-    if (items.length === 0) {
-        const empty = document.createElement("li");
-
-        empty.className = "history-empty";
-        empty.textContent = "ยังไม่มีประวัติการดาวน์โหลด";
-        list.appendChild(empty);
-
-        return;
-    }
+    $("recent").style.display = items.length ? "flex" : "none";
 
     for (const item of items) {
-        const row = document.createElement("li");
-        row.title = item.url;
+        const chip = document.createElement("button");
 
-        const top = document.createElement("div");
-        top.className = "hist-top";
+        chip.type = "button";
+        chip.className = "recent-chip";
+        chip.textContent = hostOf(item.url);
+        chip.title = item.url + " · " + plural(item.files, "file") +
+            " · " + formatBytes(item.bytes);
 
-        const name = document.createElement("span");
-        name.className = "hist-name";
-        name.textContent = hostOf(item.url);
-
-        const size = document.createElement("span");
-        size.className = "hist-size";
-        size.textContent = formatBytes(item.bytes);
-
-        top.append(
-            svgIcon(item.mode === "single" ? ICON_FILE : ICON_FOLDER),
-            name,
-            size
-        );
-
-        const meta = document.createElement("div");
-        meta.className = "hist-meta";
-        meta.textContent =
-            (item.mode === "single" ? "ไฟล์เดียว" : "แยกไฟล์") + " · " +
-            item.files + " ไฟล์ · " + timeAgo(item.time);
-
-        const track = document.createElement("div");
-        track.className = "track hist-bar";
-
-        const fill = document.createElement("div");
-        fill.className = "track-fill";
-        fill.style.width =
-            Math.max(3, (Number(item.bytes) || 0) / maxBytes * 100) + "%";
-
-        track.appendChild(fill);
-        row.append(top, meta, track);
-
-        row.addEventListener("click", () => {
+        chip.addEventListener("click", () => {
             $("url").value = item.url;
             markInvalid(false);
+            updateUrlFill();
             showNote("");
             $("url").focus();
         });
 
-        list.appendChild(row);
+        list.appendChild(chip);
     }
 }
 
-/* ---------- การทำงานหลัก ---------- */
+/* ---------- main actions ---------- */
 
 function downloadWebsite() {
     if (isDownloading) return;
 
     const url = normalizeUrl($("url").value);
     const folder = $("folder").value.trim();
-
-    let valid = false;
-
-    try {
-        const parsed = new URL(url);
-
-        valid = ["http:", "https:"].includes(parsed.protocol) &&
-            (parsed.hostname.includes(".") || parsed.hostname === "localhost");
-    } catch {
-        valid = false;
-    }
+    const valid = isValidUrl(url);
 
     markInvalid(!valid);
 
     if (!valid) {
-        showNote("URL ไม่ถูกต้อง ลองตรวจสอบอีกครั้ง เช่น https://example.com");
+        updateUrlFill();
+        showNote("That doesn't look like a valid link. Try https://example.com");
         $("url").focus();
         return;
     }
 
     if (!folder) {
-        showNote("กรุณาเลือกโฟลเดอร์ที่จะบันทึกไฟล์ก่อน");
+        showNote("Choose a folder to save into first.");
         return;
     }
 
@@ -360,7 +306,7 @@ function cancelDownload() {
     if (!isDownloading) return;
 
     send("cancel");
-    $("progressText").textContent = "กำลังยกเลิก...";
+    $("progressText").textContent = "Cancelling...";
 }
 
 async function pasteUrl() {
@@ -370,12 +316,13 @@ async function pasteUrl() {
         if (text) {
             $("url").value = text;
             markInvalid(false);
+            updateUrlFill();
             showNote("");
         }
     } catch {
-        // บางครั้ง WebView2 ไม่อนุญาตให้อ่านคลิปบอร์ด ให้กด Ctrl+V แทน
+        // WebView2 sometimes blocks clipboard reads: fall back to Ctrl+V
         $("url").focus();
-        showNote("กด Ctrl+V ในช่อง URL เพื่อวางลิงก์", true);
+        showNote("Press Ctrl+V in the box to paste the link.", true);
     }
 }
 
@@ -389,7 +336,7 @@ function backHome() {
     $("url").focus();
 }
 
-// รับข้อความจาก C#
+// messages from C#
 function handleWebMessage(event) {
     const data = event.data;
 
@@ -407,12 +354,11 @@ function handleWebMessage(event) {
             clearLog();
             setProgress(0);
             $("runHost").textContent =
-                "กำลังดาวน์โหลด " + hostOf(currentRequest?.url || "");
-            $("progressText").textContent =
-                data.message || "กำลังเริ่มดาวน์โหลด...";
+                "Downloading " + hostOf(currentRequest?.url || "");
+            $("progressText").textContent = data.message || "Starting...";
             startTimer();
             setScreen("running");
-            addLog(data.message || "เริ่มดาวน์โหลด");
+            addLog(data.message || "Starting...");
             break;
 
         case "progress":
@@ -423,14 +369,13 @@ function handleWebMessage(event) {
 
                 addLog(
                     data.message,
-                    data.message.includes("ไม่สำเร็จ") ? "bad" : ""
+                    data.message.startsWith("Failed") ? "bad" : ""
                 );
             }
             break;
 
         case "done":
             isDownloading = false;
-            lastDone = data;
             setProgress(100);
             showDone(data);
 
@@ -449,15 +394,12 @@ function handleWebMessage(event) {
             isDownloading = false;
             stopTimer();
             setScreen("home");
-            showNote(data.message || "ยกเลิกการดาวน์โหลดแล้ว", true);
+            showNote(data.message || "Download cancelled.", true);
             break;
 
         case "error":
             isDownloading = false;
-            showError(
-                "ลองใหม่อีกครั้ง",
-                data.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
-            );
+            showError("Please try again", data.message || "Something went wrong.");
             break;
     }
 }
@@ -468,6 +410,7 @@ function initializeApp() {
     $("browse").addEventListener("click", () => send("browse"));
     $("paste").addEventListener("click", pasteUrl);
     $("minimize").addEventListener("click", () => send("minimize"));
+    $("maximize").addEventListener("click", () => send("maximize"));
     $("close").addEventListener("click", () => send("close"));
     $("openFolder").addEventListener("click", () => send("open", { target: "folder" }));
     $("openFile").addEventListener("click", () => send("open", { target: "file" }));
@@ -481,6 +424,7 @@ function initializeApp() {
 
     $("url").addEventListener("input", () => {
         markInvalid(false);
+        updateUrlFill();
         showNote("");
     });
 
@@ -495,12 +439,18 @@ function initializeApp() {
         });
     });
 
-    // หน้าต่างไม่มีกรอบ: กดค้างที่แถบด้านบนเพื่อลากหน้าต่าง
+    // frameless window: hold the top bar to drag
     $("titlebar").addEventListener("mousedown", (event) => {
         if (event.button !== 0) return;
         if (event.target.closest(".window-buttons")) return;
 
         send("drag");
+    });
+
+    $("titlebar").addEventListener("dblclick", (event) => {
+        if (event.target.closest(".window-buttons")) return;
+
+        send("maximize");
     });
 
     $("folder").value = load(STORE_FOLDER);
@@ -512,6 +462,7 @@ function initializeApp() {
     if (radio) radio.checked = true;
 
     updateModeHint();
+    updateUrlFill();
     setProgress(0);
     renderHistory();
     setScreen("home");
@@ -519,7 +470,7 @@ function initializeApp() {
     if (window.chrome?.webview) {
         window.chrome.webview.addEventListener("message", handleWebMessage);
     } else {
-        showNote("หน้านี้ต้องเปิดผ่านโปรแกรม WebGrabber (ต้องมี Microsoft WebView2)");
+        showNote("Open this page through the WebGrabber app (Microsoft WebView2 is required).");
     }
 }
 
