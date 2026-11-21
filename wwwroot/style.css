@@ -882,3 +882,303 @@ h1 {
     display: flex;
     flex-direction: column;
 }
+
+/* =====================================================================
+   Polish pass: depth, glow, motion. Same black/white identity.
+   ===================================================================== */
+
+:root {
+    --glow: rgba(255, 255, 255, 0.07);
+    --card-top: #1b1b1f;
+    --card-bot: #151518;
+    --shadow-lg: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
+}
+
+body {
+    background:
+        radial-gradient(900px 480px at 50% -8%, rgba(255, 255, 255, 0.075), transparent 70%),
+        radial-gradient(600px 400px at 100% 100%, rgba(255, 255, 255, 0.03), transparent 70%),
+        var(--bg);
+    background-attachment: fixed;
+}
+
+/* title bar */
+.logo {
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px -6px rgba(255, 255, 255, 0.35);
+}
+
+.brand-name {
+    letter-spacing: 0.01em;
+}
+
+/* headline */
+h1 {
+    font-weight: 800;
+    letter-spacing: -2.2px;
+    background: linear-gradient(180deg, #ffffff 30%, #a8a8b2 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.lede-lg {
+    max-width: 560px;
+}
+
+/* cards */
+.card {
+    background: linear-gradient(180deg, var(--card-top), var(--card-bot));
+    border-color: #2a2a30;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        var(--shadow-lg);
+    transition: border-color 0.2s, box-shadow 0.25s, transform 0.2s;
+}
+
+.card-url:focus-within {
+    border-color: #4a4a54;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.07),
+        0 0 0 4px var(--glow),
+        var(--shadow-lg);
+}
+
+.card-save:hover {
+    border-color: #3a3a42;
+}
+
+.tile {
+    background: linear-gradient(180deg, #2a2a30, #202024);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* address field */
+.url-big {
+    caret-color: #fff;
+}
+
+.url-track {
+    height: 6px;
+    background: #202024;
+}
+
+.url-track .track-fill {
+    background: linear-gradient(90deg, #8a8a94, #ffffff);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.45);
+}
+
+/* segmented switch */
+.segmented {
+    background: #131316;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.segmented input:checked + span {
+    background: linear-gradient(180deg, #34343b, #2a2a30);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* buttons */
+.chip {
+    background: linear-gradient(180deg, #2b2b31, #222226);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.chip:hover:not(:disabled) {
+    background: linear-gradient(180deg, #34343b, #2a2a30);
+}
+
+.btn-white,
+.btn-primary {
+    background: linear-gradient(180deg, #ffffff, #dcdce0);
+    box-shadow:
+        0 10px 28px -10px rgba(255, 255, 255, 0.45),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.btn-white:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ffffff, #ececef);
+    box-shadow:
+        0 14px 34px -10px rgba(255, 255, 255, 0.6),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.btn-white svg {
+    transition: transform 0.2s;
+}
+
+.btn-white:hover svg {
+    transform: translateY(2px);
+}
+
+.btn-dark {
+    background: linear-gradient(180deg, #2b2b31, #222226);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.btn-dark:hover {
+    background: linear-gradient(180deg, #34343b, #2a2a30);
+}
+
+.cta {
+    margin-top: 30px;
+}
+
+.recent-chip {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* downloading */
+#runHost {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#runHost::before {
+    content: "";
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 0 rgba(110, 231, 168, 0.6);
+    animation: pulse 1.6s ease-out infinite;
+}
+
+@keyframes pulse {
+    to {
+        box-shadow: 0 0 0 10px rgba(110, 231, 168, 0);
+    }
+}
+
+.big {
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #ffffff 35%, #9d9da7 140%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.big small {
+    -webkit-text-fill-color: var(--muted);
+}
+
+.bar {
+    height: 10px;
+    background: #202024;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.bar-fill {
+    position: relative;
+    background: linear-gradient(90deg, #9a9aa4, #ffffff);
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.5);
+    overflow: hidden;
+}
+
+.bar-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.18), transparent);
+    transform: translateX(-100%);
+    animation: sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes sweep {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+.log li {
+    position: relative;
+    padding: 10px 0 10px 20px;
+    animation: enter 0.2s ease both;
+}
+
+.log li::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 18px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4a4a52;
+}
+
+.log li.bad::before {
+    background: var(--bad);
+}
+
+.log li:last-child {
+    color: var(--text);
+}
+
+.log li:last-child::before {
+    background: var(--ok);
+}
+
+/* done / error */
+.badge {
+    position: relative;
+    background: linear-gradient(180deg, #ffffff, #d8d8dd);
+    box-shadow: 0 20px 50px -14px rgba(255, 255, 255, 0.5);
+    animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.badge::after {
+    content: "";
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.badge:not(.badge-dim) svg path {
+    stroke-dasharray: 30;
+    stroke-dashoffset: 30;
+    animation: draw 0.45s 0.25s ease forwards;
+}
+
+.badge-dim {
+    background: linear-gradient(180deg, #2a2a30, #202024);
+    box-shadow: none;
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes draw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.summary {
+    background: linear-gradient(180deg, var(--card-top), var(--card-bot));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-lg);
+}
+
+.track-fill.ok {
+    box-shadow: 0 0 12px rgba(110, 231, 168, 0.5);
+}
+
+/* keyboard focus */
+button:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
