@@ -57,6 +57,17 @@ public sealed class MainForm : Form
             Math.Min(800, area.Height - 40));
         BackColor = Color.FromArgb(12, 17, 28);
 
+        try
+        {
+            // ใช้ไอคอนเดียวกับไฟล์ .exe สำหรับ Taskbar / Alt+Tab
+            Icon = Icon.ExtractAssociatedIcon(
+                Environment.ProcessPath ?? Application.ExecutablePath);
+        }
+        catch
+        {
+            // ไม่มีไอคอนก็ใช้ค่าเริ่มต้น
+        }
+
         Controls.Add(_web);
         Load += OnLoad;
         FormClosing += OnFormClosing;
