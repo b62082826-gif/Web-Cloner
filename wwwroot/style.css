@@ -207,6 +207,52 @@ input[readonly] {
     background: #3a4d68;
 }
 
+/* HINT */
+
+.hint {
+    margin: -10px 0 20px;
+    color: #7d8ea6;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+input:disabled,
+select:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.secondary:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+/* RESULT */
+
+.result {
+    display: none;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+.result-stats {
+    color: #9eacc0;
+    font-size: 13px;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+
+.result-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.result-actions .secondary {
+    flex: 1;
+}
+
 /* PROGRESS */
 
 .progress-area {

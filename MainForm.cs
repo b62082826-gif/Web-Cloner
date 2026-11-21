@@ -1,4 +1,4 @@
-
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
@@ -20,17 +20,24 @@ public sealed class MainForm : Form
     private const int WM_NCLBUTTONDOWN = 0xA1;
     private const int HTCAPTION = 0x2;
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly WebView2 _web = new()
     {
         Dock = DockStyle.Fill
     };
 
-    private readonly WebScraperService _scraper = new();
+    private readonly IWebScraperService _scraper = new WebScraperService();
     private CancellationTokenSource? _cancel;
     private bool _isDownloading;
+    private string? _lastEntry;
 
     public MainForm()
     {
+        Text = "WebGrabber Pro";
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(900, 620);
@@ -46,12 +53,37 @@ public sealed class MainForm : Form
     {
         try
         {
-            await _web.EnsureCoreWebView2Async();
+            // เก็บข้อมูล WebView2 ไว้ใน LocalAppData ไม่ใช่ข้างไฟล์ .exe
+            // (ถ้าติดตั้งในโฟลเดอร์ที่เขียนไม่ได้ เช่น Program Files โปรแกรมจะเปิดไม่ขึ้น)
+            var userData = Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData),
+                "WebGrabberPro",
+                "WebView2");
+
+            var environment = await CoreWebView2Environment.CreateAsync(
+                null, userData);
+
+            await _web.EnsureCoreWebView2Async(environment);
 
             var settings = _web.CoreWebView2.Settings;
             settings.AreDefaultContextMenusEnabled = false;
             settings.AreDevToolsEnabled = false;
             settings.IsStatusBarEnabled = false;
+            settings.IsZoomControlEnabled = false;
+
+            // UI ต้องอยู่ในไฟล์ภายในเครื่องเท่านั้น ห้ามนำทางหรือเปิดหน้าต่างใหม่ไปเว็บอื่น
+            _web.CoreWebView2.NavigationStarting += (_, args) =>
+            {
+                if (!args.Uri.StartsWith(
+                        "file:", StringComparison.OrdinalIgnoreCase))
+                {
+                    args.Cancel = true;
+                }
+            };
+
+            _web.CoreWebView2.NewWindowRequested += (_, args) =>
+                args.Handled = true;
 
             _web.CoreWebView2.WebMessageReceived += OnWebMessage;
 
@@ -71,11 +103,15 @@ public sealed class MainForm : Form
         catch (Exception ex)
         {
             MessageBox.Show(
-                "ไม่สามารถเปิดโปรแกรมได้\n\n" + ex.Message,
+                "ไม่สามารถเปิดโปรแกรมได้\n\n" + ex.Message +
+                "\n\nหากยังไม่มี Microsoft Edge WebView2 Runtime " +
+                "ให้ติดตั้งจาก https://developer.microsoft.com/microsoft-edge/webview2/",
                 "WebGrabber Pro",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error
             );
+
+            Close();
         }
     }
 
@@ -91,9 +127,7 @@ public sealed class MainForm : Form
             if (!root.TryGetProperty("action", out var actionElement))
                 return;
 
-            var action = actionElement.GetString();
-
-            switch (action)
+            switch (actionElement.GetString())
             {
                 case "minimize":
                     WindowState = FormWindowState.Minimized;
@@ -101,6 +135,14 @@ public sealed class MainForm : Form
 
                 case "close":
                     Close();
+                    break;
+
+                case "drag":
+                    // หน้าต่างไม่มีกรอบ จึงต้องส่งสัญญาณลากหน้าต่างเอง
+                    ReleaseCapture();
+                    SendMessage(
+                        Handle, WM_NCLBUTTONDOWN,
+                        (IntPtr)HTCAPTION, IntPtr.Zero);
                     break;
 
                 case "browse":
@@ -111,7 +153,12 @@ public sealed class MainForm : Form
                     _cancel?.Cancel();
                     break;
 
+                case "open":
+                    OpenResult(root);
+                    break;
+
                 case "download":
+                {
                     if (_isDownloading)
                         return;
 
@@ -119,17 +166,13 @@ public sealed class MainForm : Form
                         return;
 
                     var request = JsonSerializer.Deserialize<DownloadRequest>(
-                        data.GetRawText(),
-                        new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        }
-                    );
+                        data.GetRawText(), JsonOptions);
 
                     if (request != null)
                         await StartDownloadAsync(request);
 
                     break;
+                }
             }
         }
         catch (Exception ex)
@@ -159,6 +202,38 @@ public sealed class MainForm : Form
         }
     }
 
+    private void OpenResult(JsonElement root)
+    {
+        // เปิดได้เฉพาะผลลัพธ์ล่าสุดที่โปรแกรมสร้างเอง ไม่รับพาธจากหน้า UI
+        if (_lastEntry == null || !File.Exists(_lastEntry))
+            return;
+
+        var target = "folder";
+
+        if (root.TryGetProperty("data", out var data) &&
+            data.ValueKind == JsonValueKind.Object &&
+            data.TryGetProperty("target", out var targetElement))
+        {
+            target = targetElement.GetString() ?? "folder";
+        }
+
+        if (target == "file")
+        {
+            Process.Start(new ProcessStartInfo(_lastEntry)
+            {
+                UseShellExecute = true
+            });
+        }
+        else
+        {
+            Process.Start(new ProcessStartInfo(
+                "explorer.exe", "/select,\"" + _lastEntry + "\"")
+            {
+                UseShellExecute = true
+            });
+        }
+    }
+
     private async Task StartDownloadAsync(DownloadRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.OutputFolder))
@@ -166,25 +241,24 @@ public sealed class MainForm : Form
                 "กรุณาเลือกโฟลเดอร์บันทึกไฟล์"
             );
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) ||
+        if (!Uri.TryCreate(request.Url?.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp &&
              uri.Scheme != Uri.UriSchemeHttps))
         {
             throw new InvalidOperationException("URL ไม่ถูกต้อง");
         }
 
-        var hostFolder = string.Concat(
-            uri.Host.Select(c =>
-                Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)
-        );
-
         var output = Path.Combine(
             request.OutputFolder,
-            hostFolder + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
+            PathSanitizer.FolderName(uri.Host) + "_" +
+            DateTime.Now.ToString("yyyyMMdd_HHmmss")
         );
 
+        var cancel = new CancellationTokenSource();
+
         _isDownloading = true;
-        _cancel = new CancellationTokenSource();
+        _cancel = cancel;
+        _lastEntry = null;
 
         var progress = new Progress<(int percent, string message)>(
             p => Post(new
@@ -203,23 +277,31 @@ public sealed class MainForm : Form
                 message = "กำลังเริ่มดาวน์โหลด..."
             });
 
-            await _scraper.DownloadAsync(
-                request.Url,
+            var result = await _scraper.DownloadAsync(
+                uri.AbsoluteUri,
                 output,
                 request.Mode,
                 progress,
-                _cancel.Token
+                cancel.Token
             );
+
+            _lastEntry = result.EntryFile;
 
             Post(new
             {
                 type = "done",
                 message = "ดาวน์โหลดสำเร็จ",
-                path = output
+                path = output,
+                entry = result.EntryFile,
+                files = result.Files,
+                failed = result.Failed,
+                bytes = result.Bytes
             });
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
         {
+            TryDeleteFolder(output);
+
             Post(new
             {
                 type = "cancelled",
@@ -228,17 +310,37 @@ public sealed class MainForm : Form
         }
         catch (Exception ex)
         {
+            TryDeleteFolder(output);
+
+            // HttpClient หมดเวลาจะโยน TaskCanceledException โดยที่ผู้ใช้ไม่ได้กดยกเลิก
+            var message = ex is OperationCanceledException
+                ? "เซิร์ฟเวอร์ตอบสนองช้าเกินไป (หมดเวลา)"
+                : ex.Message;
+
             Post(new
             {
                 type = "error",
-                message = ex.Message
+                message
             });
         }
         finally
         {
-            _cancel?.Dispose();
+            cancel.Dispose();
             _cancel = null;
             _isDownloading = false;
+        }
+    }
+
+    private static void TryDeleteFolder(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+        catch
+        {
+            // ลบโฟลเดอร์ที่ค้างไม่ได้ก็ไม่เป็นไร
         }
     }
 
@@ -249,7 +351,7 @@ public sealed class MainForm : Form
 
     private void Post(object value)
     {
-        if (_web.CoreWebView2 == null || _web.IsDisposed)
+        if (IsDisposed || _web.IsDisposed || _web.CoreWebView2 == null)
             return;
 
         _web.CoreWebView2.PostWebMessageAsJson(
@@ -257,4 +359,3 @@ public sealed class MainForm : Form
         );
     }
 }
-
