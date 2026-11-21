@@ -3,100 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGrabber Pro</title>
+    <title>WebGrabber</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-    <div class="titlebar" id="titlebar">
-        <div class="brand">WEBGRABBER PRO</div>
+<body data-screen="home">
+    <div class="app">
 
-        <div class="window-buttons">
-            <button id="minimize" title="Minimize">—</button>
-            <button id="close" class="close" title="Close">✕</button>
-        </div>
-    </div>
+        <header class="titlebar" id="titlebar">
+            <div class="brand">
+                <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+                    <rect width="32" height="32" rx="9" fill="#f4f4f5"/>
+                    <circle cx="16" cy="16" r="7" fill="none" stroke="#111113" stroke-width="4" stroke-dasharray="36 8" stroke-linecap="round"/>
+                </svg>
+                <span class="brand-name">WebGrabber</span>
+            </div>
 
-    <main class="container">
-        <h1>Website Downloader</h1>
-        <div class="subtitle">
-            Download website files and save them locally.
-        </div>
-
-        <section class="panel">
-            <label for="url">Website URL</label>
-            <input
-                id="url"
-                type="url"
-                placeholder="https://example.com"
-                autocomplete="off"
-                spellcheck="false"
-            >
-
-            <label for="folder">Save Location</label>
-
-            <div class="folder-row">
-                <input
-                    id="folder"
-                    type="text"
-                    placeholder="Select output folder..."
-                    readonly
-                >
-
-                <button id="browse" class="secondary" type="button">
-                    Browse
+            <div class="window-buttons">
+                <button id="minimize" title="ย่อหน้าต่าง" aria-label="ย่อหน้าต่าง">
+                    <svg viewBox="0 0 12 12" width="12" height="12"><path d="M1.5 6h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </button>
+                <button id="close" class="close" title="ปิดโปรแกรม" aria-label="ปิดโปรแกรม">
+                    <svg viewBox="0 0 12 12" width="12" height="12"><path d="M1.8 1.8l8.4 8.4m0-8.4l-8.4 8.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
                 </button>
             </div>
+        </header>
 
-            <label for="mode">Download Mode</label>
-
-            <select id="mode">
-                <option value="separated">Separated Assets (index.html + css / js / images / fonts)</option>
-                <option value="single">Single HTML Bundle (one standalone .html)</option>
-            </select>
-
-            <div id="modeHint" class="hint"></div>
-
-            <button id="download" class="primary" type="button">
-                DOWNLOAD WEBSITE
-            </button>
-
-            <button id="cancel" class="cancel" type="button">
-                CANCEL DOWNLOAD
-            </button>
-
-            <div class="progress-area">
-                <div class="progress-info">
-                    <span id="progressText">Ready</span>
-                    <span id="percent">0%</span>
+        <!-- ================= หน้าแรก ================= -->
+        <main class="screen screen-home" id="screenHome">
+            <div class="head">
+                <div class="head-text">
+                    <div class="eyebrow">วางลิงก์ แล้วเก็บไว้ดูออฟไลน์</div>
+                    <h1>เก็บเว็บไซต์<span class="muted-inline"> ไว้ในเครื่อง</span></h1>
+                    <p class="lede" id="modeHint"></p>
                 </div>
 
-                <div class="progress-track">
-                    <div id="progress" class="progress-fill"></div>
+                <div class="segmented" id="modes" role="radiogroup" aria-label="รูปแบบการบันทึก">
+                    <label>
+                        <input type="radio" name="mode" value="separated" checked>
+                        <span>แยกไฟล์</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="mode" value="single">
+                        <span>ไฟล์เดียว</span>
+                    </label>
                 </div>
             </div>
 
-            <div id="status">Ready to download.</div>
+            <div class="grid">
+                <section class="panel main-panel">
+                    <label class="label" for="url">ที่อยู่เว็บไซต์</label>
 
-            <div id="result" class="result">
-                <div id="resultStats" class="result-stats"></div>
+                    <div class="field" id="urlWrap">
+                        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z"/>
+                        </svg>
+                        <input
+                            id="url"
+                            type="text"
+                            inputmode="url"
+                            placeholder="https://example.com"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <button id="paste" class="chip" type="button">วาง</button>
+                    </div>
 
-                <div class="result-actions">
-                    <button id="openFolder" class="secondary" type="button">
-                        Show in folder
+                    <div class="note" id="note" role="alert"></div>
+
+                    <label class="label" for="folder">บันทึกไว้ที่</label>
+
+                    <div class="field">
+                        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                        <input id="folder" type="text" placeholder="ยังไม่ได้เลือกโฟลเดอร์" readonly>
+                        <button id="browse" class="chip" type="button">เลือกโฟลเดอร์</button>
+                    </div>
+
+                    <button id="download" class="btn-primary" type="button">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>
+                        <span>เริ่มดาวน์โหลด</span>
                     </button>
+                </section>
 
-                    <button id="openFile" class="secondary" type="button">
-                        Open in browser
+                <aside class="panel side-panel">
+                    <div class="side-head">
+                        <div>
+                            <h2>ดาวน์โหลดล่าสุด</h2>
+                            <p>กดที่รายการเพื่อใส่ลิงก์เดิมอีกครั้ง</p>
+                        </div>
+                        <button id="clearHistory" class="chip" type="button">ล้าง</button>
+                    </div>
+
+                    <ul class="history" id="history"></ul>
+                </aside>
+            </div>
+        </main>
+
+        <!-- ================= กำลังดาวน์โหลด ================= -->
+        <main class="screen screen-running" id="screenRunning">
+            <div class="head">
+                <div class="head-text">
+                    <div class="eyebrow" id="runHost">กำลังดาวน์โหลด</div>
+                    <div class="big">
+                        <span id="bigPercent">0</span><small>%</small>
+                    </div>
+                    <p class="lede" id="progressText">กำลังเริ่มต้น...</p>
+                </div>
+
+                <button id="cancel" class="btn-dark" type="button">ยกเลิก</button>
+            </div>
+
+            <div class="bar" aria-hidden="true"><div class="bar-fill" id="barFill"></div></div>
+            <div class="elapsed" id="elapsed"></div>
+
+            <section class="panel log-panel">
+                <div class="side-head">
+                    <div>
+                        <h2>ความคืบหน้า</h2>
+                        <p id="logCount">รอรายการแรก</p>
+                    </div>
+                </div>
+
+                <ul class="log" id="log"></ul>
+            </section>
+        </main>
+
+        <!-- ================= เสร็จแล้ว ================= -->
+        <main class="screen screen-done" id="screenDone">
+            <div class="center">
+                <div class="badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                </div>
+
+                <div class="eyebrow center-eyebrow">ดาวน์โหลดเสร็จแล้ว ขนาดรวม</div>
+                <div class="big big-xl" id="statSize">0 B</div>
+                <p class="lede center-lede" id="doneSub"></p>
+
+                <div class="summary">
+                    <div class="sum-row">
+                        <div class="sum-line"><span>ดาวน์โหลดสำเร็จ</span><b id="statFiles">0 ไฟล์</b></div>
+                        <div class="track"><div class="track-fill ok" id="barOk"></div></div>
+                    </div>
+                    <div class="sum-row">
+                        <div class="sum-line"><span>โหลดไม่ได้ (ใช้ลิงก์เว็บจริงแทน)</span><b id="statFailed" class="">0 ไฟล์</b></div>
+                        <div class="track"><div class="track-fill bad" id="barFail"></div></div>
+                    </div>
+                </div>
+
+                <div class="done-actions">
+                    <button id="openFile" class="btn-white" type="button">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>
+                        <span>เปิดในเบราว์เซอร์</span>
                     </button>
+                    <button id="openFolder" class="btn-dark" type="button">แสดงในโฟลเดอร์</button>
+                    <button id="backDone" class="btn-dark" type="button">เสร็จ</button>
+                </div>
+
+                <div class="path" id="donePath"></div>
+            </div>
+        </main>
+
+        <!-- ================= ผิดพลาด / ยกเลิก ================= -->
+        <main class="screen screen-error" id="screenError">
+            <div class="center">
+                <div class="badge badge-dim" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v6"/><path d="M12 17h.01"/></svg>
+                </div>
+
+                <div class="eyebrow center-eyebrow" id="errEyebrow">ดาวน์โหลดไม่สำเร็จ</div>
+                <div class="big big-md" id="errTitle">เกิดข้อผิดพลาด</div>
+                <p class="lede center-lede err-msg" id="errMsg"></p>
+
+                <div class="done-actions">
+                    <button id="backError" class="btn-white" type="button">กลับไปแก้ไข</button>
                 </div>
             </div>
-        </section>
-
-        <div class="footer">
-            WEBGRABBER PRO · WINDOWS DESKTOP APPLICATION
-        </div>
-    </main>
+        </main>
+    </div>
 
     <script src="app.js"></script>
 </body>
