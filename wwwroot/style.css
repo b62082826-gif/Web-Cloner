@@ -1182,3 +1182,128 @@ button:focus-visible {
     outline: 2px solid #fff;
     outline-offset: 3px;
 }
+
+/* =====================================================================
+   Light theme (toggle in the title bar, remembered between runs)
+   ===================================================================== */
+
+html[data-theme="light"] {
+    color-scheme: light;
+
+    --bg: #f4f4f2;
+    --panel: #ffffff;
+    --panel-2: #eeeeeb;
+    --line: #e2e2dd;
+    --line-strong: #cfcfc9;
+    --text: #111113;
+    --muted: #5c5c64;
+    --faint: #8a8a92;
+    --track: #e4e4df;
+    --ok: #138a52;
+    --bad: #d92d2d;
+    --glow: rgba(0, 0, 0, 0.06);
+    --card-top: #ffffff;
+    --card-bot: #fbfbfa;
+    --shadow-lg: 0 20px 44px -26px rgba(20, 20, 30, 0.28);
+}
+
+html[data-theme="light"] body {
+    background:
+        radial-gradient(900px 480px at 50% -8%, rgba(255, 255, 255, 0.9), transparent 70%),
+        var(--bg);
+    background-attachment: fixed;
+}
+
+html[data-theme="light"] .logo rect { fill: #111113; }
+html[data-theme="light"] .logo path { stroke: #f4f4f2; }
+html[data-theme="light"] .logo { box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.35); }
+
+html[data-theme="light"] .window-buttons button { color: #66666e; }
+html[data-theme="light"] .window-buttons button:hover { background: rgba(0, 0, 0, 0.07); color: #111113; }
+html[data-theme="light"] .window-buttons button.close:hover { color: #fff; }
+
+html[data-theme="light"] h1,
+html[data-theme="light"] .big {
+    background: linear-gradient(180deg, #111113 40%, #6a6a72 140%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .summary {
+    border-color: var(--line);
+    box-shadow: inset 0 1px 0 #fff, var(--shadow-lg);
+}
+
+html[data-theme="light"] .card-url:focus-within { border-color: #9a9aa2; }
+html[data-theme="light"] .card-save:hover { border-color: var(--line-strong); }
+
+html[data-theme="light"] .tile {
+    background: linear-gradient(180deg, #f3f3f0, #e8e8e4);
+    box-shadow: inset 0 1px 0 #fff;
+}
+
+html[data-theme="light"] .url-big { caret-color: #111113; }
+html[data-theme="light"] .url-big::placeholder { color: #b5b5bb; }
+html[data-theme="light"] .url-track { background: var(--track); }
+
+html[data-theme="light"] .url-track .track-fill,
+html[data-theme="light"] .bar-fill,
+html[data-theme="light"] .track-fill {
+    background: linear-gradient(90deg, #6a6a72, #111113);
+    box-shadow: none;
+}
+
+html[data-theme="light"] .track-fill.ok { background: var(--ok); }
+html[data-theme="light"] .track-fill.bad { background: var(--bad); }
+html[data-theme="light"] .bar { background: var(--track); box-shadow: none; }
+
+html[data-theme="light"] .segmented { background: #e9e9e5; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08); }
+
+html[data-theme="light"] .segmented input:checked + span {
+    background: #fff;
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="light"] .chip,
+html[data-theme="light"] .btn-dark {
+    background: linear-gradient(180deg, #f6f6f3, #e9e9e5);
+    box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="light"] .chip:hover:not(:disabled),
+html[data-theme="light"] .btn-dark:hover {
+    background: linear-gradient(180deg, #fff, #eeeeea);
+}
+
+html[data-theme="light"] .btn-white,
+html[data-theme="light"] .btn-primary {
+    background: linear-gradient(180deg, #2a2a2e, #111113);
+    color: #fff;
+    box-shadow: 0 12px 26px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="light"] .btn-white:hover:not(:disabled),
+html[data-theme="light"] .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #38383d, #1a1a1d);
+    box-shadow: 0 16px 30px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="light"] .recent-chip { background: #fff; }
+
+html[data-theme="light"] .log li::before { background: #c4c4c9; }
+html[data-theme="light"] .log li:last-child::before { background: var(--ok); }
+html[data-theme="light"] .log li.bad::before { background: var(--bad); }
+
+html[data-theme="light"] .badge {
+    background: linear-gradient(180deg, #2a2a2e, #111113);
+    color: #fff;
+    box-shadow: 0 20px 44px -16px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="light"] .badge::after { border-color: rgba(0, 0, 0, 0.14); }
+html[data-theme="light"] .badge-dim { background: var(--panel-2); color: var(--text); }
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cfcfca; }
+html[data-theme="light"] button:focus-visible { outline-color: #111113; }

@@ -8,6 +8,7 @@ const MAX_HISTORY = 6;
 const STORE_FOLDER = "webgrabber.folder";
 const STORE_MODE = "webgrabber.mode";
 const STORE_HISTORY = "webgrabber.history";
+const STORE_THEME = "webgrabber.theme";
 
 const MODE_HINTS = {
     separated: "Saves index.html plus css, js, images and fonts folders. Easy to edit.",
@@ -404,7 +405,21 @@ function handleWebMessage(event) {
     }
 }
 
+function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+}
+
 function initializeApp() {
+    applyTheme(load(STORE_THEME, "dark"));
+
+    $("theme").addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "light"
+            ? "dark" : "light";
+
+        applyTheme(next);
+        store(STORE_THEME, next);
+    });
+
     $("download").addEventListener("click", downloadWebsite);
     $("cancel").addEventListener("click", cancelDownload);
     $("browse").addEventListener("click", () => send("browse"));
