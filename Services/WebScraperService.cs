@@ -1,425 +1,1201 @@
-
 using System.Collections.Concurrent;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
+using WebGrabberPro.Models;
 
 namespace WebGrabberPro.Services;
 
-public sealed class WebScraperService
+public sealed class WebScraperService : IWebScraperService
 {
-    private const int MaxFiles = 250;
+    private const int MaxFiles = 400;
     private const int MaxFileSize = 25 * 1024 * 1024;
-    private const int MaxConcurrentDownloads = 6;
+    private const int MaxConcurrentDownloads = 8;
 
-    private static readonly HttpClient Http = new(
-        new HttpClientHandler
-        {
-            AllowAutoRedirect = true
-        })
+    private const string UserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+    private static readonly HttpClient Http = CreateClient();
+
+    static WebScraperService()
     {
-        Timeout = TimeSpan.FromSeconds(40)
-    };
+        // ให้อ่านหน้าเว็บที่ใช้ charset เก่า เช่น windows-874 / tis-620 ได้
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
 
-    private readonly ConcurrentDictionary<string, string> _savedFiles = new();
-    private readonly SemaphoreSlim _semaphore =
-        new(MaxConcurrentDownloads);
+    private static HttpClient CreateClient()
+    {
+        var handler = new HttpClientHandler
+        {
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 10,
+            AutomaticDecompression = DecompressionMethods.All,
+            UseCookies = true
+        };
 
-    private int _fileCount;
+        var client = new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(40)
+        };
 
-    private static readonly Regex CssResourceRegex = new(
-        @"url\(\s*(['""]?)(?<url>.*?)\1\s*\)|@import\s+(['""])(?<import>.*?)\3",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled
-    );
+        client.DefaultRequestHeaders.TryAddWithoutValidation(
+            "User-Agent", UserAgent);
+        client.DefaultRequestHeaders.TryAddWithoutValidation(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9," +
+            "image/avif,image/webp,*/*;q=0.8");
+        client.DefaultRequestHeaders.TryAddWithoutValidation(
+            "Accept-Language", "th,en;q=0.9");
 
-    public async Task DownloadAsync(
+        return client;
+    }
+
+    public async Task<DownloadResult> DownloadAsync(
         string url,
         string outputFolder,
         string mode,
         IProgress<(int percent, string message)>? progress,
         CancellationToken token)
     {
-        _savedFiles.Clear();
-        _fileCount = 0;
-
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var baseUri) ||
-            (baseUri.Scheme != "http" && baseUri.Scheme != "https"))
+        if (!Uri.TryCreate(url?.Trim(), UriKind.Absolute, out var baseUri) ||
+            !IsHttp(baseUri))
         {
             throw new InvalidOperationException("URL ไม่ถูกต้อง");
         }
 
         Directory.CreateDirectory(outputFolder);
 
-        progress?.Report((5, "กำลังดาวน์โหลด HTML..."));
+        var single = string.Equals(
+            mode, "single", StringComparison.OrdinalIgnoreCase);
 
-        using var response = await Http.GetAsync(
-            baseUri,
-            HttpCompletionOption.ResponseHeadersRead,
-            token
-        );
+        var session = new Session(single, outputFolder, progress);
 
-        response.EnsureSuccessStatusCode();
-
-        var finalUri = response.RequestMessage?.RequestUri ?? baseUri;
-        var html = await response.Content.ReadAsStringAsync(token);
-
-        var document = new HtmlDocument();
-        document.LoadHtml(html);
-
-        progress?.Report((15, "กำลังตรวจสอบไฟล์เว็บไซต์..."));
-
-        await ProcessHtmlAsync(
-            document,
-            finalUri,
-            outputFolder,
-            progress,
-            token
-        );
-
-        token.ThrowIfCancellationRequested();
-
-        var outputHtml = document.DocumentNode.OuterHtml;
-
-        await File.WriteAllTextAsync(
-            Path.Combine(outputFolder, "index.html"),
-            outputHtml,
-            new UTF8Encoding(false),
-            token
-        );
-
-        progress?.Report((100, "บันทึกเว็บไซต์เรียบร้อย"));
+        return await session.RunAsync(baseUri, token);
     }
 
-    private async Task ProcessHtmlAsync(
-        HtmlDocument document,
-        Uri baseUri,
-        string outputFolder,
-        IProgress<(int percent, string message)>? progress,
-        CancellationToken token)
+    // ------------------------------------------------------------------
+    // Helpers ที่ใช้ร่วมกัน
+    // ------------------------------------------------------------------
+
+    private enum AssetKind { Css, Js, Image, Font, Media, Other }
+
+    private sealed record Asset(
+        string Key,
+        Uri FinalUri,
+        byte[] Bytes,
+        string Mime,
+        AssetKind Kind,
+        string LocalPath);
+
+    private static readonly Dictionary<string, string> MimeToExt =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["text/css"] = ".css",
+            ["text/javascript"] = ".js",
+            ["application/javascript"] = ".js",
+            ["application/x-javascript"] = ".js",
+            ["application/ecmascript"] = ".js",
+            ["image/png"] = ".png",
+            ["image/jpeg"] = ".jpg",
+            ["image/gif"] = ".gif",
+            ["image/webp"] = ".webp",
+            ["image/avif"] = ".avif",
+            ["image/svg+xml"] = ".svg",
+            ["image/x-icon"] = ".ico",
+            ["image/vnd.microsoft.icon"] = ".ico",
+            ["image/bmp"] = ".bmp",
+            ["font/woff2"] = ".woff2",
+            ["font/woff"] = ".woff",
+            ["font/ttf"] = ".ttf",
+            ["font/otf"] = ".otf",
+            ["application/font-woff"] = ".woff",
+            ["application/font-woff2"] = ".woff2",
+            ["application/vnd.ms-fontobject"] = ".eot",
+            ["video/mp4"] = ".mp4",
+            ["video/webm"] = ".webm",
+            ["audio/mpeg"] = ".mp3",
+            ["audio/ogg"] = ".ogg",
+            ["audio/wav"] = ".wav",
+            ["application/json"] = ".json",
+            ["text/vtt"] = ".vtt"
+        };
+
+    private static readonly Dictionary<string, string> ExtToMime =
+        BuildExtToMime();
+
+    private static Dictionary<string, string> BuildExtToMime()
     {
-        var nodes = document.DocumentNode.SelectNodes(
-            "//*[@src or @href or @poster or @srcset or @style]"
-        );
+        var map = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase);
 
-        if (nodes != null)
-        {
-            foreach (var node in nodes)
-            {
-                token.ThrowIfCancellationRequested();
+        foreach (var pair in MimeToExt)
+            map.TryAdd(pair.Value, pair.Key);
 
-                foreach (var attributeName in new[]
-                {
-                    "src", "poster"
-                })
-                {
-                    var attribute = node.Attributes[attributeName];
+        map[".jpeg"] = "image/jpeg";
+        map[".mjs"] = "text/javascript";
 
-                    if (attribute != null)
-                    {
-                        attribute.Value = await DownloadAndReplaceAsync(
-                            attribute.Value,
-                            baseUri,
-                            outputFolder,
-                            token
-                        );
-                    }
-                }
-
-                var href = node.Attributes["href"];
-
-                if (href != null)
-                {
-                    var rel = node.GetAttributeValue("rel", "")
-                        .ToLowerInvariant();
-
-                    if (rel.Contains("stylesheet") ||
-                        rel.Contains("icon") ||
-                        rel.Contains("preload") ||
-                        rel.Contains("modulepreload"))
-                    {
-                        href.Value = await DownloadAndReplaceAsync(
-                            href.Value,
-                            baseUri,
-                            outputFolder,
-                            token
-                        );
-                    }
-                }
-
-                var srcset = node.Attributes["srcset"];
-
-                if (srcset != null)
-                {
-                    srcset.Value = await ProcessSrcSetAsync(
-                        srcset.Value,
-                        baseUri,
-                        outputFolder,
-                        token
-                    );
-                }
-
-                var style = node.Attributes["style"];
-
-                if (style != null)
-                {
-                    style.Value = await RewriteCssAsync(
-                        style.Value,
-                        baseUri,
-                        outputFolder,
-                        token
-                    );
-                }
-            }
-        }
-
-        var styleNodes = document.DocumentNode.SelectNodes("//style");
-
-        if (styleNodes != null)
-        {
-            foreach (var styleNode in styleNodes)
-            {
-                styleNode.InnerHtml = await RewriteCssAsync(
-                    styleNode.InnerHtml,
-                    baseUri,
-                    outputFolder,
-                    token
-                );
-            }
-        }
+        return map;
     }
 
-    private async Task<string> ProcessSrcSetAsync(
-        string srcset,
-        Uri baseUri,
-        string outputFolder,
-        CancellationToken token)
+    // ตรงกับทั้ง @import และ url(...) ในไฟล์ CSS
+    //   กลุ่ม "a"   = URL ของ @import   (กลุ่ม "tail" = media query ท้าย @import)
+    //   กลุ่ม "b"   = URL ของ url(...)
+    private static readonly Regex CssRefRegex = new(
+        @"@import\s+(?:url\(\s*(?:""(?<a>[^""]*)""|'(?<a>[^']*)'|(?<a>[^)\s'""]*))\s*\)|""(?<a>[^""]*)""|'(?<a>[^']*)')(?<tail>[^;{}]*);" +
+        @"|url\(\s*(?:""(?<b>[^""]*)""|'(?<b>[^']*)'|(?<b>[^)\s'""]*))\s*\)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex CharsetRegex = new(
+        @"charset\s*=\s*[""']?\s*([A-Za-z0-9_\-]+)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex ExtensionRegex = new(
+        @"^\.[a-z0-9]{1,8}$", RegexOptions.Compiled);
+
+    private static readonly Action Noop = () => { };
+
+    private static bool IsHttp(Uri uri) =>
+        uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
+
+    private static bool IsFetchable(string value)
     {
-        var parts = srcset.Split(',');
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
 
-        for (int i = 0; i < parts.Length; i++)
-        {
-            token.ThrowIfCancellationRequested();
+        value = value.TrimStart();
 
-            var item = parts[i].Trim();
-            var split = item.Split(
-                ' ',
-                2,
-                StringSplitOptions.RemoveEmptyEntries
-            );
-
-            if (split.Length == 0)
-                continue;
-
-            var local = await DownloadAndReplaceAsync(
-                split[0],
-                baseUri,
-                outputFolder,
-                token
-            );
-
-            parts[i] = split.Length > 1
-                ? local + " " + split[1]
-                : local;
-        }
-
-        return string.Join(", ", parts);
+        return !(value.StartsWith("#") ||
+                 value.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+                 value.StartsWith("blob:", StringComparison.OrdinalIgnoreCase) ||
+                 value.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
+                 value.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
+                 value.StartsWith("tel:", StringComparison.OrdinalIgnoreCase) ||
+                 value.StartsWith("sms:", StringComparison.OrdinalIgnoreCase) ||
+                 value.StartsWith("about:", StringComparison.OrdinalIgnoreCase));
     }
 
-    private async Task<string> DownloadAndReplaceAsync(
-        string originalUrl,
-        Uri baseUri,
-        string outputFolder,
-        CancellationToken token)
+    private static string EscapeAttr(string value) =>
+        value.Replace("&", "&amp;").Replace("\"", "&quot;");
+
+    private static string DecodeUtf8(byte[] bytes) =>
+        Encoding.UTF8.GetString(bytes).TrimStart('﻿');
+
+    private static string RelPath(string fromDir, string toPath)
     {
-        var value = originalUrl.Trim();
+        var relative = fromDir.Length == 0
+            ? toPath
+            : Path.GetRelativePath(fromDir, toPath);
 
-        if (string.IsNullOrWhiteSpace(value) ||
-            value.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
-            value.StartsWith("blob:", StringComparison.OrdinalIgnoreCase) ||
-            value.StartsWith("#") ||
-            value.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
-            value.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
-        {
-            return originalUrl;
-        }
-
-        if (!Uri.TryCreate(baseUri, value, out var assetUri))
-            return originalUrl;
-
-        if (assetUri.Scheme != "http" && assetUri.Scheme != "https")
-            return originalUrl;
-
-        var fragment = assetUri.Fragment;
-        var cleanUri = new UriBuilder(assetUri)
-        {
-            Fragment = ""
-        }.Uri;
-
-        var localPath = await DownloadAssetAsync(
-            cleanUri,
-            outputFolder,
-            token
-        );
-
-        return localPath == null
-            ? originalUrl
-            : localPath + fragment;
+        return relative.Replace('\\', '/');
     }
 
-    private async Task<string?> DownloadAssetAsync(
-        Uri assetUri,
-        string outputFolder,
-        CancellationToken token)
+    private static string DecodeHtml(byte[] bytes, string? headerCharset)
     {
-        var key = assetUri.AbsoluteUri;
+        Encoding? encoding = null;
 
-        if (_savedFiles.TryGetValue(key, out var existing))
-            return existing;
+        if (!string.IsNullOrWhiteSpace(headerCharset))
+            encoding = TryGetEncoding(headerCharset.Trim('"', '\'', ' '));
 
-        string filePath;
+        if (encoding == null)
+        {
+            var head = Encoding.Latin1.GetString(
+                bytes, 0, Math.Min(bytes.Length, 4096));
 
-        await _semaphore.WaitAsync(token);
+            var match = CharsetRegex.Match(head);
 
+            if (match.Success)
+                encoding = TryGetEncoding(match.Groups[1].Value);
+        }
+
+        encoding ??= Encoding.UTF8;
+
+        return encoding.GetString(bytes).TrimStart('﻿');
+    }
+
+    private static Encoding? TryGetEncoding(string name)
+    {
         try
         {
-            if (_savedFiles.TryGetValue(key, out existing))
-                return existing;
+            return Encoding.GetEncoding(name);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
-            if (Interlocked.Increment(ref _fileCount) > MaxFiles)
+    private static List<(string url, string desc)> ParseSrcSet(string value)
+    {
+        var list = new List<(string, string)>();
+        var i = 0;
+
+        while (i < value.Length)
+        {
+            while (i < value.Length &&
+                   (char.IsWhiteSpace(value[i]) || value[i] == ','))
+            {
+                i++;
+            }
+
+            if (i >= value.Length)
+                break;
+
+            var start = i;
+
+            while (i < value.Length && !char.IsWhiteSpace(value[i]))
+                i++;
+
+            var url = value[start..i];
+            var desc = string.Empty;
+
+            if (url.EndsWith(','))
+            {
+                url = url.TrimEnd(',');
+            }
+            else
+            {
+                var descStart = i;
+
+                while (i < value.Length && value[i] != ',')
+                    i++;
+
+                desc = value[descStart..i].Trim();
+            }
+
+            if (url.Length > 0)
+                list.Add((url, desc));
+        }
+
+        return list;
+    }
+
+    private static AssetKind Classify(string mime, string ext)
+    {
+        mime = mime.ToLowerInvariant();
+
+        if (mime.Contains("css") || ext == ".css")
+            return AssetKind.Css;
+
+        if (mime.Contains("javascript") || mime.Contains("ecmascript") ||
+            ext == ".js" || ext == ".mjs")
+            return AssetKind.Js;
+
+        if (mime.StartsWith("image/") ||
+            ext is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or
+                ".avif" or ".svg" or ".ico" or ".bmp")
+            return AssetKind.Image;
+
+        if (mime.Contains("font") ||
+            ext is ".woff" or ".woff2" or ".ttf" or ".otf" or ".eot")
+            return AssetKind.Font;
+
+        if (mime.StartsWith("video/") || mime.StartsWith("audio/") ||
+            ext is ".mp4" or ".webm" or ".mp3" or ".ogg" or ".wav")
+            return AssetKind.Media;
+
+        return AssetKind.Other;
+    }
+
+    private static string FolderFor(AssetKind kind) => kind switch
+    {
+        AssetKind.Css => "css",
+        AssetKind.Js => "js",
+        AssetKind.Image => "images",
+        AssetKind.Font => "fonts",
+        AssetKind.Media => "media",
+        _ => "other"
+    };
+
+    private static string MimeFor(Asset asset)
+    {
+        if (!string.IsNullOrWhiteSpace(asset.Mime) &&
+            !asset.Mime.Equals(
+                "application/octet-stream",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return asset.Mime;
+        }
+
+        var ext = Path.GetExtension(asset.LocalPath);
+
+        return ExtToMime.TryGetValue(ext, out var mime)
+            ? mime
+            : "application/octet-stream";
+    }
+
+    private static string ToDataUri(Asset asset) =>
+        "data:" + MimeFor(asset) + ";base64," +
+        Convert.ToBase64String(asset.Bytes);
+
+    // HtmlAgilityPack จะ parse ใหม่ถ้าตั้ง InnerHtml ซึ่งทำให้ JS/CSS ที่มี '<' เสียหาย
+    // จึงใส่เป็น text node ดิบแทน
+    private static void SetRawText(HtmlNode node, string text)
+    {
+        node.RemoveAllChildren();
+        node.AppendChild(node.OwnerDocument.CreateTextNode(text));
+    }
+
+    private static void StripIntegrity(HtmlNode node)
+    {
+        // integrity จะไม่ตรงเมื่อไฟล์ถูกแก้/ฝังลงหน้า และ crossorigin ทำให้โหลดจาก file:// ไม่ได้
+        node.Attributes.Remove("integrity");
+        node.Attributes.Remove("crossorigin");
+        node.Attributes.Remove("nonce");
+    }
+
+    private static Action MakeAbsolute(
+        HtmlNode node, string attribute, Uri baseUri)
+    {
+        var attr = node.Attributes[attribute];
+
+        if (attr == null)
+            return Noop;
+
+        var raw = HtmlEntity.DeEntitize(attr.Value).Trim();
+
+        if (!IsFetchable(raw) ||
+            !Uri.TryCreate(baseUri, raw, out var uri) ||
+            !IsHttp(uri))
+        {
+            return Noop;
+        }
+
+        var absolute = uri.AbsoluteUri;
+
+        return () => node.SetAttributeValue(attribute, EscapeAttr(absolute));
+    }
+
+    private static void NormalizeCharset(HtmlDocument document)
+    {
+        var metas = document.DocumentNode.SelectNodes(
+            "//meta[@charset or translate(@http-equiv, 'CONTENT-TYPE', 'content-type')='content-type']");
+
+        if (metas != null)
+        {
+            foreach (var meta in metas.ToList())
+                meta.Remove();
+        }
+
+        var head = document.DocumentNode.SelectSingleNode("//head");
+
+        head?.PrependChild(
+            HtmlNode.CreateNode("<meta charset=\"utf-8\">")
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Session = สถานะของการดาวน์โหลด 1 ครั้ง
+    // ------------------------------------------------------------------
+
+    private sealed class Session
+    {
+        private readonly bool _single;
+        private readonly string _out;
+        private readonly IProgress<(int percent, string message)>? _progress;
+
+        private readonly ConcurrentDictionary<string, Lazy<Task<Asset?>>>
+            _assets = new();
+
+        private readonly ConcurrentBag<Task> _pendingCss = new();
+        private readonly SemaphoreSlim _gate = new(MaxConcurrentDownloads);
+        private readonly object _progressLock = new();
+
+        private Uri _pageUri = null!;
+        private CancellationToken _ct;
+
+        private int _total;
+        private int _done;
+        private int _ok;
+        private int _failed;
+        private long _bytes;
+        private int _lastPercent;
+
+        public Session(
+            bool single,
+            string outputFolder,
+            IProgress<(int percent, string message)>? progress)
+        {
+            _single = single;
+            _out = outputFolder;
+            _progress = progress;
+        }
+
+        public async Task<DownloadResult> RunAsync(
+            Uri pageUri, CancellationToken ct)
+        {
+            _ct = ct;
+
+            _progress?.Report((5, "กำลังดาวน์โหลดหน้าเว็บ..."));
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, pageUri);
+            using var response = await Http.SendAsync(
+                request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            response.EnsureSuccessStatusCode();
+
+            _pageUri = response.RequestMessage?.RequestUri ?? pageUri;
+
+            var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+            var html = DecodeHtml(
+                bytes, response.Content.Headers.ContentType?.CharSet);
+
+            var document = new HtmlDocument();
+            document.LoadHtml(html);
+
+            // <base href> ต้องถูกนำมาใช้คำนวณ URL และลบทิ้ง ไม่เช่นนั้นพาธในเครื่องจะเพี้ยน
+            var baseUri = _pageUri;
+            var baseNode = document.DocumentNode
+                .SelectSingleNode("//base[@href]");
+
+            if (baseNode != null)
+            {
+                var href = HtmlEntity.DeEntitize(
+                    baseNode.GetAttributeValue("href", ""));
+
+                if (Uri.TryCreate(_pageUri, href, out var b) && IsHttp(b))
+                    baseUri = b;
+
+                baseNode.Remove();
+            }
+
+            _progress?.Report((15, "กำลังวิเคราะห์ไฟล์ในหน้าเว็บ..."));
+
+            var jobs = new List<Task<Action>>();
+
+            var nodes = document.DocumentNode
+                .Descendants()
+                .Where(n => n.NodeType == HtmlNodeType.Element)
+                .ToList();
+
+            foreach (var node in nodes)
+                CollectJobs(node, baseUri, jobs);
+
+            // ดาวน์โหลดทุกไฟล์พร้อมกัน แล้วค่อยแก้ DOM ทีละอย่างตามลำดับ
+            var actions = await Task.WhenAll(jobs);
+
+            foreach (var action in actions)
+                action();
+
+            // โหมดแยกไฟล์: รอให้ไฟล์ CSS ทุกไฟล์ถูกแก้พาธเสร็จ
+            // (CSS อาจลากไฟล์ CSS อื่นตามมาเพิ่มระหว่างที่รออยู่)
+            while (_pendingCss.TryTake(out var pending))
+                await pending;
+
+            ct.ThrowIfCancellationRequested();
+
+            NormalizeCharset(document);
+
+            var entry = Path.Combine(_out, "index.html");
+
+            await File.WriteAllTextAsync(
+                entry,
+                document.DocumentNode.OuterHtml,
+                new UTF8Encoding(false),
+                ct);
+
+            _progress?.Report((100, "บันทึกเว็บไซต์เรียบร้อย"));
+
+            return new DownloadResult(
+                entry,
+                _ok,
+                _failed,
+                Interlocked.Read(ref _bytes));
+        }
+
+        // -------------------- รวบรวมงานจาก DOM --------------------
+
+        private void CollectJobs(
+            HtmlNode node, Uri baseUri, List<Task<Action>> jobs)
+        {
+            var name = node.Name.ToLowerInvariant();
+
+            if (node.Attributes["style"] != null)
+                jobs.Add(Safe(() => RewriteStyleAttributeAsync(node, baseUri)));
+
+            switch (name)
+            {
+                case "style":
+                    jobs.Add(Safe(() => RewriteStyleTagAsync(node, baseUri)));
+                    break;
+
+                case "link":
+                    CollectLink(node, baseUri, jobs);
+                    break;
+
+                case "script":
+                    if (node.Attributes["src"] != null)
+                        jobs.Add(Safe(() => ProcessScriptAsync(node, baseUri)));
+                    break;
+
+                case "a":
+                case "area":
+                    // ลิงก์ไปหน้าอื่นไม่ดาวน์โหลด แต่แปลงเป็น URL เต็มให้กดแล้วไปเว็บจริง
+                    jobs.Add(Task.FromResult(
+                        MakeAbsolute(node, "href", baseUri)));
+                    break;
+
+                case "iframe":
+                case "frame":
+                case "embed":
+                    jobs.Add(Task.FromResult(
+                        MakeAbsolute(node, "src", baseUri)));
+                    break;
+
+                case "object":
+                    jobs.Add(Task.FromResult(
+                        MakeAbsolute(node, "data", baseUri)));
+                    break;
+
+                case "form":
+                    jobs.Add(Task.FromResult(
+                        MakeAbsolute(node, "action", baseUri)));
+                    break;
+
+                case "image":
+                case "use":
+                    foreach (var attribute in new[] { "href", "xlink:href" })
+                    {
+                        if (node.Attributes[attribute] != null)
+                        {
+                            var captured = attribute;
+
+                            jobs.Add(Safe(() =>
+                                ReplaceAttributeAsync(node, captured, baseUri)));
+                        }
+                    }
+                    break;
+
+                default:
+                    foreach (var attribute in new[]
+                    {
+                        "src", "poster", "data-src", "data-lazy-src",
+                        "data-original", "data-poster"
+                    })
+                    {
+                        if (node.Attributes[attribute] != null)
+                        {
+                            var captured = attribute;
+
+                            jobs.Add(Safe(() =>
+                                ReplaceAttributeAsync(node, captured, baseUri)));
+                        }
+                    }
+
+                    foreach (var attribute in new[] { "srcset", "data-srcset" })
+                    {
+                        if (node.Attributes[attribute] != null)
+                        {
+                            var captured = attribute;
+
+                            jobs.Add(Safe(() =>
+                                ReplaceSrcSetAsync(node, captured, baseUri)));
+                        }
+                    }
+                    break;
+            }
+        }
+
+        private void CollectLink(
+            HtmlNode node, Uri baseUri, List<Task<Action>> jobs)
+        {
+            var tokens = node.GetAttributeValue("rel", "")
+                .ToLowerInvariant()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (tokens.Contains("stylesheet"))
+            {
+                jobs.Add(Safe(() => ProcessStylesheetLinkAsync(node, baseUri)));
+            }
+            else if (tokens.Any(t => t is "preload" or "modulepreload" or
+                         "prefetch" or "preconnect" or "dns-prefetch" or
+                         "prerender"))
+            {
+                // เป็นแค่ตัวช่วยเร่งความเร็วของเว็บจริง ไม่จำเป็นกับไฟล์ที่บันทึก
+                jobs.Add(Task.FromResult<Action>(() => node.Remove()));
+            }
+            else if (tokens.Any(t => t.Contains("icon")))
+            {
+                jobs.Add(Safe(() =>
+                    ReplaceAttributeAsync(node, "href", baseUri)));
+            }
+            else if (tokens.Contains("manifest"))
+            {
+                jobs.Add(Task.FromResult(
+                    MakeAbsolute(node, "href", baseUri)));
+            }
+        }
+
+        private async Task<Action> Safe(Func<Task<Action>> job)
+        {
+            try
+            {
+                return await job();
+            }
+            catch (OperationCanceledException) when (_ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                // งานหนึ่งพังไม่ควรทำให้ทั้งเว็บล้มเหลว
+                return Noop;
+            }
+        }
+
+        // -------------------- แปลง attribute / srcset --------------------
+
+        private async Task<string?> ResolveAsync(
+            string raw, Uri baseUri, string ownerDir)
+        {
+            raw = raw.Trim();
+
+            if (!IsFetchable(raw) ||
+                !Uri.TryCreate(baseUri, raw, out var uri) ||
+                !IsHttp(uri))
+            {
                 return null;
+            }
 
-            using var response = await Http.GetAsync(
-                assetUri,
-                HttpCompletionOption.ResponseHeadersRead,
-                token
-            );
+            var asset = await GetAssetAsync(uri);
+
+            // โหลดไม่ได้ -> ใช้ URL เต็มของเว็บจริงแทน หน้าที่บันทึกจะยังแสดงผลได้เมื่อออนไลน์
+            if (asset == null)
+                return uri.AbsoluteUri;
+
+            return _single
+                ? ToDataUri(asset) + uri.Fragment
+                : RelPath(ownerDir, asset.LocalPath) + uri.Fragment;
+        }
+
+        private async Task<Action> ReplaceAttributeAsync(
+            HtmlNode node, string attribute, Uri baseUri)
+        {
+            var attr = node.Attributes[attribute];
+
+            if (attr == null)
+                return Noop;
+
+            var raw = HtmlEntity.DeEntitize(attr.Value);
+            var replacement = await ResolveAsync(raw, baseUri, "");
+
+            if (replacement == null)
+                return Noop;
+
+            return () =>
+            {
+                node.SetAttributeValue(attribute, EscapeAttr(replacement));
+                StripIntegrity(node);
+            };
+        }
+
+        private async Task<Action> ReplaceSrcSetAsync(
+            HtmlNode node, string attribute, Uri baseUri)
+        {
+            var attr = node.Attributes[attribute];
+
+            if (attr == null)
+                return Noop;
+
+            var items = ParseSrcSet(HtmlEntity.DeEntitize(attr.Value));
+
+            if (items.Count == 0)
+                return Noop;
+
+            var parts = await Task.WhenAll(items.Select(async item =>
+            {
+                var url = await ResolveAsync(item.url, baseUri, "") ?? item.url;
+
+                return string.IsNullOrEmpty(item.desc)
+                    ? url
+                    : url + " " + item.desc;
+            }));
+
+            var joined = string.Join(", ", parts);
+
+            return () => node.SetAttributeValue(attribute, EscapeAttr(joined));
+        }
+
+        // -------------------- <script src> --------------------
+
+        private async Task<Action> ProcessScriptAsync(
+            HtmlNode node, Uri baseUri)
+        {
+            var raw = HtmlEntity.DeEntitize(node.GetAttributeValue("src", ""))
+                .Trim();
+
+            if (!IsFetchable(raw) ||
+                !Uri.TryCreate(baseUri, raw, out var uri) ||
+                !IsHttp(uri))
+            {
+                return Noop;
+            }
+
+            var asset = await GetAssetAsync(uri);
+
+            if (asset == null)
+            {
+                var absolute = uri.AbsoluteUri;
+
+                return () =>
+                {
+                    node.SetAttributeValue("src", EscapeAttr(absolute));
+                    StripIntegrity(node);
+                };
+            }
+
+            if (!_single)
+            {
+                var relative = RelPath("", asset.LocalPath);
+
+                return () =>
+                {
+                    node.SetAttributeValue("src", relative);
+                    StripIntegrity(node);
+                };
+            }
+
+            var code = DecodeUtf8(asset.Bytes)
+                .Replace("</script", "<\\/script",
+                    StringComparison.OrdinalIgnoreCase);
+
+            return () =>
+            {
+                var isModule = node.GetAttributeValue("type", "")
+                    .Equals("module", StringComparison.OrdinalIgnoreCase);
+
+                var defer = node.Attributes["defer"] != null;
+
+                node.Attributes.Remove("src");
+                node.Attributes.Remove("async");
+                node.Attributes.Remove("defer");
+                StripIntegrity(node);
+
+                SetRawText(node, code);
+
+                // สคริปต์แบบ defer ต้องรันหลังโหลด DOM เสร็จ
+                // เมื่อฝังลงหน้าแล้วต้องย้ายไปท้าย <body> เพื่อให้ลำดับการทำงานเหมือนเดิม
+                if (defer && !isModule && node.ParentNode != null)
+                {
+                    var body = node.OwnerDocument.DocumentNode
+                        .SelectSingleNode("//body");
+
+                    if (body != null)
+                    {
+                        node.Remove();
+                        body.AppendChild(node);
+                    }
+                }
+            };
+        }
+
+        // -------------------- CSS --------------------
+
+        private async Task<Action> ProcessStylesheetLinkAsync(
+            HtmlNode node, Uri baseUri)
+        {
+            var raw = HtmlEntity.DeEntitize(node.GetAttributeValue("href", ""))
+                .Trim();
+
+            if (!IsFetchable(raw) ||
+                !Uri.TryCreate(baseUri, raw, out var uri) ||
+                !IsHttp(uri))
+            {
+                return Noop;
+            }
+
+            var asset = await GetAssetAsync(uri);
+
+            if (asset == null)
+            {
+                var absolute = uri.AbsoluteUri;
+
+                return () =>
+                {
+                    node.SetAttributeValue("href", EscapeAttr(absolute));
+                    StripIntegrity(node);
+                };
+            }
+
+            if (!_single)
+            {
+                var relative = RelPath("", asset.LocalPath);
+
+                return () =>
+                {
+                    node.SetAttributeValue("href", relative);
+                    StripIntegrity(node);
+                };
+            }
+
+            var css = await RewriteCssAsync(
+                DecodeUtf8(asset.Bytes),
+                asset.FinalUri,
+                null,
+                new HashSet<string> { asset.Key });
+
+            css = css.Replace("</style", "<\\/style",
+                StringComparison.OrdinalIgnoreCase);
+
+            return () =>
+            {
+                if (node.ParentNode == null)
+                    return;
+
+                var style = node.OwnerDocument.CreateElement("style");
+                var media = node.GetAttributeValue("media", "");
+
+                if (media.Length > 0)
+                    style.SetAttributeValue("media", media);
+
+                SetRawText(style, css);
+                node.ParentNode.ReplaceChild(style, node);
+            };
+        }
+
+        private async Task<Action> RewriteStyleTagAsync(
+            HtmlNode node, Uri baseUri)
+        {
+            var css = node.InnerHtml;
+
+            var rewritten = await RewriteCssAsync(
+                css, baseUri, _single ? null : "", new HashSet<string>());
+
+            if (rewritten == css)
+                return Noop;
+
+            return () => SetRawText(node, rewritten);
+        }
+
+        private async Task<Action> RewriteStyleAttributeAsync(
+            HtmlNode node, Uri baseUri)
+        {
+            var attr = node.Attributes["style"];
+
+            if (attr == null)
+                return Noop;
+
+            var raw = HtmlEntity.DeEntitize(attr.Value);
+
+            if (!raw.Contains("url(", StringComparison.OrdinalIgnoreCase))
+                return Noop;
+
+            var rewritten = await RewriteCssAsync(
+                raw, baseUri, _single ? null : "", new HashSet<string>());
+
+            if (rewritten == raw)
+                return Noop;
+
+            return () => node.SetAttributeValue(
+                "style", EscapeAttr(rewritten));
+        }
+
+        /// <param name="ownerDir">
+        /// โฟลเดอร์ (เทียบกับ root ของผลลัพธ์) ของไฟล์ที่มี CSS นี้อยู่
+        /// "" = index.html, "css" = ไฟล์ใน css/ ; null = โหมดฝังลงไฟล์เดียว
+        /// </param>
+        private async Task<string> RewriteCssAsync(
+            string css, Uri baseUri, string? ownerDir, HashSet<string> stack)
+        {
+            var matches = CssRefRegex.Matches(css);
+
+            if (matches.Count == 0)
+                return css;
+
+            var tasks = new List<Task<string>>(matches.Count);
+
+            foreach (Match match in matches)
+                tasks.Add(RewriteCssRefAsync(match, baseUri, ownerDir, stack));
+
+            var parts = await Task.WhenAll(tasks);
+
+            var builder = new StringBuilder();
+            var last = 0;
+
+            for (var i = 0; i < matches.Count; i++)
+            {
+                var match = matches[i];
+
+                builder.Append(css, last, match.Index - last);
+                builder.Append(parts[i]);
+
+                last = match.Index + match.Length;
+            }
+
+            builder.Append(css, last, css.Length - last);
+
+            return builder.ToString();
+        }
+
+        private async Task<string> RewriteCssRefAsync(
+            Match match, Uri baseUri, string? ownerDir, HashSet<string> stack)
+        {
+            var importGroup = match.Groups["a"];
+            var isImport = importGroup.Success;
+
+            var raw = (isImport
+                ? importGroup.Value
+                : match.Groups["b"].Value).Trim();
+
+            if (!IsFetchable(raw) ||
+                !Uri.TryCreate(baseUri, raw, out var uri) ||
+                !IsHttp(uri))
+            {
+                return match.Value;
+            }
+
+            var tail = isImport ? match.Groups["tail"].Value : "";
+            var asset = await GetAssetAsync(uri);
+
+            string Import(string target) =>
+                "@import url(\"" + target + "\")" + tail + ";";
+
+            string Url(string target) => "url(\"" + target + "\")";
+
+            if (asset == null)
+            {
+                return isImport
+                    ? Import(uri.AbsoluteUri)
+                    : Url(uri.AbsoluteUri);
+            }
+
+            if (!_single)
+            {
+                var relative =
+                    RelPath(ownerDir ?? "", asset.LocalPath) + uri.Fragment;
+
+                return isImport ? Import(relative) : Url(relative);
+            }
+
+            if (isImport)
+            {
+                // ฝัง CSS ที่ @import ลงไปตรงนั้นเลย (กันวนลูปด้วย stack)
+                if (asset.Kind != AssetKind.Css || stack.Contains(asset.Key))
+                    return Import(uri.AbsoluteUri);
+
+                var next = new HashSet<string>(stack) { asset.Key };
+
+                var inner = await RewriteCssAsync(
+                    DecodeUtf8(asset.Bytes), asset.FinalUri, null, next);
+
+                var media = tail.Trim();
+
+                return media.Length == 0
+                    ? inner
+                    : "@media " + media + " {\n" + inner + "\n}";
+            }
+
+            return Url(ToDataUri(asset) + uri.Fragment);
+        }
+
+        private async Task ProcessCssFileAsync(Asset asset)
+        {
+            try
+            {
+                var slash = asset.LocalPath.LastIndexOf('/');
+                var dir = slash < 0 ? "" : asset.LocalPath[..slash];
+
+                var css = DecodeUtf8(asset.Bytes);
+
+                var rewritten = await RewriteCssAsync(
+                    css,
+                    asset.FinalUri,
+                    dir,
+                    new HashSet<string> { asset.Key });
+
+                if (rewritten != css)
+                {
+                    var path = Path.Combine(
+                        _out,
+                        asset.LocalPath.Replace('/', Path.DirectorySeparatorChar));
+
+                    await File.WriteAllTextAsync(
+                        path, rewritten, new UTF8Encoding(false), _ct);
+                }
+            }
+            catch (OperationCanceledException) when (_ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                // ถ้าแก้พาธไม่สำเร็จ ไฟล์ CSS ต้นฉบับที่บันทึกไว้แล้วจะยังคงอยู่
+            }
+        }
+
+        // -------------------- ดาวน์โหลดไฟล์ --------------------
+
+        private Task<Asset?> GetAssetAsync(Uri uri)
+        {
+            var clean = new UriBuilder(uri) { Fragment = "" }.Uri;
+            var key = clean.AbsoluteUri;
+
+            return _assets.GetOrAdd(
+                key,
+                k => new Lazy<Task<Asset?>>(() => LoadAssetAsync(clean, k))
+            ).Value;
+        }
+
+        private void Report(string message)
+        {
+            if (_progress == null)
+                return;
+
+            int percent;
+
+            lock (_progressLock)
+            {
+                var total = Math.Max(_total, 1);
+                var value = 15 + (int)(80.0 * Math.Min(_done, total) / total);
+
+                _lastPercent = Math.Max(_lastPercent, Math.Min(value, 95));
+                percent = _lastPercent;
+            }
+
+            _progress.Report((percent, message));
+        }
+
+        private async Task<(byte[]? bytes, Uri finalUri, string mime)>
+            DownloadBytesAsync(Uri uri)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Referrer = _pageUri;
+
+            using var response = await Http.SendAsync(
+                request, HttpCompletionOption.ResponseHeadersRead, _ct);
+
+            var finalUri = response.RequestMessage?.RequestUri ?? uri;
+            var mime = response.Content.Headers.ContentType?.MediaType ?? "";
 
             if (!response.IsSuccessStatusCode)
-                return null;
+                return (null, finalUri, mime);
 
             if (response.Content.Headers.ContentLength is long length &&
                 length > MaxFileSize)
             {
+                return (null, finalUri, mime);
+            }
+
+            await using var stream =
+                await response.Content.ReadAsStreamAsync(_ct);
+
+            using var memory = new MemoryStream();
+            var buffer = new byte[81920];
+            int read;
+
+            while ((read = await stream.ReadAsync(buffer, _ct)) > 0)
+            {
+                memory.Write(buffer, 0, read);
+
+                if (memory.Length > MaxFileSize)
+                    return (null, finalUri, mime);
+            }
+
+            return (memory.ToArray(), finalUri, mime);
+        }
+
+        private async Task<Asset?> LoadAssetAsync(Uri uri, string key)
+        {
+            if (Interlocked.Increment(ref _total) > MaxFiles)
+            {
+                Interlocked.Decrement(ref _total);
                 return null;
             }
 
-            var bytes = await response.Content.ReadAsByteArrayAsync(token);
+            byte[]? bytes = null;
+            var finalUri = uri;
+            var mime = "";
 
-            if (bytes.Length > MaxFileSize)
+            try
+            {
+                await _gate.WaitAsync(_ct);
+
+                try
+                {
+                    (bytes, finalUri, mime) = await DownloadBytesAsync(uri);
+                }
+                finally
+                {
+                    _gate.Release();
+                }
+            }
+            catch (OperationCanceledException) when (_ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                bytes = null;
+            }
+
+            Interlocked.Increment(ref _done);
+
+            if (bytes == null)
+            {
+                Interlocked.Increment(ref _failed);
+                Report("ดาวน์โหลดไม่สำเร็จ: " + uri.Host);
                 return null;
+            }
 
-            var finalUri = response.RequestMessage?.RequestUri ?? assetUri;
+            var extFromUrl = Path.GetExtension(finalUri.AbsolutePath)
+                .ToLowerInvariant();
 
-            var extension = Path.GetExtension(finalUri.AbsolutePath);
+            if (!ExtensionRegex.IsMatch(extFromUrl))
+                extFromUrl = "";
 
-            if (!Regex.IsMatch(extension, @"^\.[a-zA-Z0-9]{1,10}$"))
-                extension = ".bin";
+            // เชื่อ Content-Type ก่อน เพราะ URL อย่าง image.php?id=3 หรือ fonts.googleapis.com/css2 ไม่มีนามสกุลจริง
+            var ext = MimeToExt.TryGetValue(mime, out var mimeExt)
+                ? mimeExt
+                : extFromUrl;
+
+            var kind = Classify(mime, ext);
+
+            if (ext.Length == 0)
+            {
+                ext = kind switch
+                {
+                    AssetKind.Css => ".css",
+                    AssetKind.Js => ".js",
+                    _ => ".bin"
+                };
+            }
 
             var hash = Convert.ToHexString(
                 SHA256.HashData(Encoding.UTF8.GetBytes(key))
-            )[..16].ToLowerInvariant();
+            )[..8].ToLowerInvariant();
 
-            var assetFolder = Path.Combine(outputFolder, "assets");
+            var folder = FolderFor(kind);
 
-            Directory.CreateDirectory(assetFolder);
+            var fileName = PathSanitizer.FileStem(finalUri.AbsolutePath) +
+                           "-" + hash + ext;
 
-            filePath = Path.Combine(
-                assetFolder,
-                hash + extension
-            );
+            var asset = new Asset(
+                key, finalUri, bytes, mime, kind, folder + "/" + fileName);
 
-            await File.WriteAllBytesAsync(filePath, bytes, token);
-
-            var relativePath = "assets/" + hash + extension;
-
-            _savedFiles.TryAdd(key, relativePath);
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
-
-        // ถ้าเป็น CSS ให้ค้นหาและดาวน์โหลดไฟล์ที่ CSS อ้างอิงต่อ
-        if (Path.GetExtension(filePath).Equals(
-            ".css",
-            StringComparison.OrdinalIgnoreCase))
-        {
-            var css = await File.ReadAllTextAsync(filePath, token);
-
-            var rewritten = await RewriteCssAsync(
-                css,
-                assetUri,
-                outputFolder,
-                token
-            );
-
-            await File.WriteAllTextAsync(
-                filePath,
-                rewritten,
-                new UTF8Encoding(false),
-                token
-            );
-        }
-
-        return _savedFiles.TryGetValue(key, out var saved)
-            ? saved
-            : null;
-    }
-
-    private async Task<string> RewriteCssAsync(
-        string css,
-        Uri baseUri,
-        string outputFolder,
-        CancellationToken token)
-    {
-        var matches = CssResourceRegex.Matches(css);
-
-        if (matches.Count == 0)
-            return css;
-
-        var result = new StringBuilder();
-        var lastIndex = 0;
-
-        foreach (Match match in matches)
-        {
-            token.ThrowIfCancellationRequested();
-
-            result.Append(
-                css.Substring(lastIndex, match.Index - lastIndex)
-            );
-
-            var urlGroup = match.Groups["url"];
-            var importGroup = match.Groups["import"];
-
-            var group = urlGroup.Success ? urlGroup : importGroup;
-            var original = group.Value.Trim();
-
-            var replacement = await DownloadAndReplaceAsync(
-                original,
-                baseUri,
-                outputFolder,
-                token
-            );
-
-            if (urlGroup.Success)
+            if (!_single)
             {
-                result.Append(
-                    match.Value.Replace(original, replacement)
-                );
-            }
-            else
-            {
-                result.Append(
-                    match.Value.Replace(original, replacement)
-                );
+                var directory = Path.Combine(_out, folder);
+
+                Directory.CreateDirectory(directory);
+
+                await File.WriteAllBytesAsync(
+                    Path.Combine(directory, fileName), bytes, _ct);
+
+                if (kind == AssetKind.Css)
+                {
+                    // Task.Run กัน Lazy ถูกเรียกซ้อนในตัวเอง (กรณี CSS import ตัวเอง)
+                    _pendingCss.Add(Task.Run(() => ProcessCssFileAsync(asset)));
+                }
             }
 
-            lastIndex = match.Index + match.Length;
+            Interlocked.Increment(ref _ok);
+            Interlocked.Add(ref _bytes, bytes.LongLength);
+
+            Report("ดาวน์โหลดแล้ว " + _done + "/" + _total + ": " + fileName);
+
+            return asset;
         }
-
-        result.Append(css.Substring(lastIndex));
-
-        return result.ToString();
     }
 }

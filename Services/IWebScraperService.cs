@@ -1,9 +1,11 @@
+using WebGrabberPro.Models;
 
 namespace WebGrabberPro.Services;
 
 public interface IWebScraperService
 {
-    Task DownloadAsync(
+    /// <param name="mode">"separated" = index.html + โฟลเดอร์ css/js/images/fonts, "single" = ไฟล์ HTML เดียว</param>
+    Task<DownloadResult> DownloadAsync(
         string url,
         string outputFolder,
         string mode,
@@ -11,4 +13,3 @@ public interface IWebScraperService
         CancellationToken token
     );
 }
-

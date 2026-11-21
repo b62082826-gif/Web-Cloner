@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -9,12 +8,12 @@
 </head>
 
 <body>
-    <div class="titlebar">
+    <div class="titlebar" id="titlebar">
         <div class="brand">WEBGRABBER PRO</div>
 
         <div class="window-buttons">
-            <button onclick="send('minimize')">—</button>
-            <button onclick="send('close')">✕</button>
+            <button id="minimize" title="Minimize">—</button>
+            <button id="close" class="close" title="Close">✕</button>
         </div>
     </div>
 
@@ -25,14 +24,16 @@
         </div>
 
         <section class="panel">
-            <label>Website URL</label>
+            <label for="url">Website URL</label>
             <input
                 id="url"
                 type="url"
                 placeholder="https://example.com"
+                autocomplete="off"
+                spellcheck="false"
             >
 
-            <label>Save Location</label>
+            <label for="folder">Save Location</label>
 
             <div class="folder-row">
                 <input
@@ -42,31 +43,25 @@
                     readonly
                 >
 
-                <button class="secondary" onclick="send('browse')">
+                <button id="browse" class="secondary" type="button">
                     Browse
                 </button>
             </div>
 
-            <label>Download Mode</label>
+            <label for="mode">Download Mode</label>
 
             <select id="mode">
-                <option value="separated">Separated Assets</option>
-                <option value="single">Single HTML Bundle (Coming Soon)</option>
+                <option value="separated">Separated Assets (index.html + css / js / images / fonts)</option>
+                <option value="single">Single HTML Bundle (one standalone .html)</option>
             </select>
 
-            <button
-                id="download"
-                class="primary"
-                onclick="downloadWebsite()"
-            >
+            <div id="modeHint" class="hint"></div>
+
+            <button id="download" class="primary" type="button">
                 DOWNLOAD WEBSITE
             </button>
 
-            <button
-                id="cancel"
-                class="cancel"
-                onclick="send('cancel')"
-            >
+            <button id="cancel" class="cancel" type="button">
                 CANCEL DOWNLOAD
             </button>
 
@@ -82,6 +77,20 @@
             </div>
 
             <div id="status">Ready to download.</div>
+
+            <div id="result" class="result">
+                <div id="resultStats" class="result-stats"></div>
+
+                <div class="result-actions">
+                    <button id="openFolder" class="secondary" type="button">
+                        Show in folder
+                    </button>
+
+                    <button id="openFile" class="secondary" type="button">
+                        Open in browser
+                    </button>
+                </div>
+            </div>
         </section>
 
         <div class="footer">
@@ -89,88 +98,6 @@
         </div>
     </main>
 
-    <script>
-        const $ = id => document.getElementById(id);
-
-        function send(action, data = {}) {
-            if (window.chrome?.webview) {
-                window.chrome.webview.postMessage({
-                    action,
-                    data
-                });
-            }
-        }
-
-        function downloadWebsite() {
-            const url = $("url").value.trim();
-            const folder = $("folder").value.trim();
-
-            if (!url || !folder) {
-                showStatus("Please enter URL and select folder.", "error");
-                return;
-            }
-
-            send("download", {
-                url,
-                outputFolder: folder,
-                mode: $("mode").value
-            });
-        }
-
-        function showStatus(message, type = "") {
-            $("status").textContent = message;
-            $("status").className = type;
-        }
-
-        if (window.chrome?.webview) {
-            window.chrome.webview.addEventListener(
-                "message",
-                event => {
-                    const data = event.data;
-
-                    if (data.type === "folder") {
-                        $("folder").value = data.path;
-                    }
-
-                    if (data.type === "started") {
-                        $("download").disabled = true;
-                        $("cancel").style.display = "block";
-                        $("progress").style.width = "0%";
-                        $("percent").textContent = "0%";
-                        showStatus(data.message);
-                    }
-
-                    if (data.type === "progress") {
-                        $("progress").style.width = data.percent + "%";
-                        $("percent").textContent = data.percent + "%";
-                        $("progressText").textContent = data.message;
-                    }
-
-                    if (data.type === "done") {
-                        finish();
-                        $("progress").style.width = "100%";
-                        $("percent").textContent = "100%";
-                        showStatus(data.message + ": " + data.path, "success");
-                    }
-
-                    if (data.type === "cancelled") {
-                        finish();
-                        showStatus(data.message);
-                    }
-
-                    if (data.type === "error") {
-                        finish();
-                        showStatus(data.message, "error");
-                    }
-                }
-            );
-        }
-
-        function finish() {
-            $("download").disabled = false;
-            $("cancel").style.display = "none";
-        }
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
-
