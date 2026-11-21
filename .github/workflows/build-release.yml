@@ -2,6 +2,8 @@ name: Build & Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   pull_request:
@@ -41,8 +43,10 @@ jobs:
           path: WebGrabberPro-win-x64.zip
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          # tag v* -> release ชื่อตาม tag, push เข้า main -> release ชื่อ build-<เลขรัน>
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
           files: WebGrabberPro-win-x64.zip
           generate_release_notes: true
