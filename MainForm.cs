@@ -41,6 +41,9 @@ public sealed class MainForm : Form
     private CancellationTokenSource? _cancel;
     private bool _isDownloading;
     private string? _lastEntry;
+    private UpdateInfo? _update;
+    private bool _updating;
+    private bool _updateChecked;
 
     public MainForm()
     {
@@ -132,6 +135,9 @@ public sealed class MainForm : Form
 
             _web.CoreWebView2.WebMessageReceived += OnWebMessage;
 
+            _web.CoreWebView2.NavigationCompleted += async (s, a) =>
+                await CheckForUpdateAsync();
+
             var page = Path.Combine(
                 AppContext.BaseDirectory,
                 "wwwroot",
@@ -215,6 +221,10 @@ public sealed class MainForm : Form
                     OpenResult(root);
                     break;
 
+                case "update":
+                    await ApplyUpdateAsync();
+                    break;
+
                 case "download":
                 {
                     if (_isDownloading)
@@ -240,6 +250,58 @@ public sealed class MainForm : Form
                 type = "error",
                 message = ex.Message
             });
+        }
+    }
+
+    private async Task CheckForUpdateAsync()
+    {
+        Post(new { type = "version", current = UpdateService.CurrentBuild });
+
+        if (_updateChecked)
+            return;
+
+        _updateChecked = true;
+
+        var info = await UpdateService.CheckAsync();
+
+        if (info == null)
+            return;
+
+        _update = info;
+
+        Post(new
+        {
+            type = "update",
+            build = info.Build,
+            size = info.Size
+        });
+    }
+
+    private async Task ApplyUpdateAsync()
+    {
+        if (_update == null || _updating || _isDownloading)
+            return;
+
+        _updating = true;
+
+        try
+        {
+            var progress = new Progress<int>(
+                p => Post(new { type = "updateProgress", percent = p }));
+
+            await UpdateService.DownloadAndLaunchAsync(
+                _update, Environment.ProcessId, progress, CancellationToken.None);
+
+            // the update script waits for this process to exit, then restarts it
+            Close();
+        }
+        catch (Exception ex)
+        {
+            Post(new { type = "updateError", message = ex.Message });
+        }
+        finally
+        {
+            _updating = false;
         }
     }
 

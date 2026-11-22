@@ -17,6 +17,7 @@
                     <path d="M7 10.5L11.5 22L16 13.5L20.5 22L25 10.5" fill="none" stroke="#111113" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <span class="brand-name">WebGrabber</span>
+                <span class="ver" id="ver"></span>
             </div>
 
             <div class="window-buttons">
@@ -34,6 +35,16 @@
                 </button>
             </div>
         </header>
+
+        <div class="update" id="update" hidden>
+            <div class="update-text">
+                <b id="updateTitle">Update available</b>
+                <span id="updateSub"></span>
+            </div>
+            <div class="update-bar" id="updateBar" hidden><div id="updateFill"></div></div>
+            <button id="updateNow" class="btn-white btn-sm" type="button">Update now</button>
+            <button id="updateLater" class="update-x" type="button" aria-label="Dismiss">&times;</button>
+        </div>
 
         <!-- ================= Home ================= -->
         <main class="screen screen-home" id="screenHome">
