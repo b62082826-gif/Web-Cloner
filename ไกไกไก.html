@@ -1,0 +1,286 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>WebGrabber</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column, oversized type, thin rules and bars. Mirrors the desktop app: near-black, off-white pill buttons. */
+:root {
+  --bg: #111113;
+  --panel: #18181b;
+  --panel-2: #1f1f23;
+  --line: #2a2a30;
+  --fg: #f4f4f5;
+  --muted: #a1a1aa;
+  --faint: #6b6b74;
+  --btn-bg: #f4f4f5;
+  --btn-fg: #111113;
+  --ok: #6ee7a8;
+  --bad: #f87171;
+  --font: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f6f4; --panel: #ffffff; --panel-2: #efefed; --line: #deded9;
+    --fg: #121214; --muted: #55555c; --faint: #85858c;
+    --btn-bg: #121214; --btn-fg: #f6f6f4; --ok: #137a49; --bad: #b42318;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f6f4; --panel: #ffffff; --panel-2: #efefed; --line: #deded9;
+  --fg: #121214; --muted: #55555c; --faint: #85858c;
+  --btn-bg: #121214; --btn-fg: #f6f6f4; --ok: #137a49; --bad: #b42318;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; border-radius: 6px; }
+
+.wrap { width: 100%; max-width: 1080px; margin-inline: auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+.wrap > * { min-width: 0; }
+
+/* nav */
+nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; letter-spacing: -.01em; }
+.brand svg { width: 28px; height: 28px; }
+.nav-links { display: flex; align-items: center; gap: 22px; font-size: 14px; color: var(--muted); }
+.nav-links a { text-decoration: none; }
+.nav-links a:hover { color: var(--fg); }
+@media (max-width: 560px) { .nav-links .hide-sm { display: none; } }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 54px; padding: 0 28px; border-radius: 999px; font: 600 16px var(--font); text-decoration: none; border: 1px solid transparent; transition: transform .15s, background .15s; }
+.btn svg { width: 20px; height: 20px; }
+.btn-main { background: var(--btn-bg); color: var(--btn-fg); }
+.btn-main:hover { transform: translateY(-1px); }
+.btn-ghost { border-color: var(--line); color: var(--fg); }
+.btn-ghost:hover { background: var(--panel); }
+.btn-sm { height: 40px; padding: 0 18px; font-size: 14px; }
+
+/* hero */
+.hero { padding-block: clamp(40px, 8vw, 96px) clamp(40px, 6vw, 72px); }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+h1 { margin: 18px 0 0; font-weight: 800; font-size: clamp(44px, 9vw, 104px); line-height: .98; letter-spacing: -.045em; text-wrap: balance; max-width: 12ch; }
+.lede { margin: 26px 0 0; max-width: 52ch; font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); }
+.cta { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.meta { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 18px; font: 400 13px var(--mono); color: var(--faint); }
+.meta span::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); margin-right: 8px; vertical-align: 1px; }
+
+/* app mock */
+.shot { margin-top: clamp(36px, 6vw, 64px); border: 1px solid var(--line); border-radius: 20px; background: var(--bg); overflow: hidden; box-shadow: 0 30px 80px -30px rgba(0,0,0,.55); }
+.shot-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.shot-bar .dots { display: flex; gap: 14px; color: var(--faint); font-size: 12px; }
+.shot-body { padding: clamp(22px, 5vw, 56px); display: grid; gap: 14px; max-width: 640px; margin-inline: auto; }
+.shot h3 { margin: 0; font-size: clamp(26px, 4.6vw, 40px); letter-spacing: -.03em; line-height: 1.1; }
+.shot p { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.card-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.tile { width: 38px; height: 38px; border-radius: 11px; background: var(--panel-2); display: grid; place-items: center; flex: none; }
+.tile svg { width: 19px; height: 19px; }
+.seg { display: inline-flex; background: var(--panel-2); border-radius: 999px; padding: 3px; font-size: 12.5px; }
+.seg span { padding: 6px 12px; border-radius: 999px; color: var(--muted); white-space: nowrap; }
+.seg .on { background: var(--btn-bg); color: var(--btn-fg); font-weight: 600; }
+.url { margin-top: 18px; font-size: clamp(24px, 5vw, 38px); font-weight: 600; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.url i { display: inline-block; width: 2px; height: .9em; background: var(--fg); vertical-align: -.1em; margin-left: 3px; animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.track { margin-top: 12px; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.track b { display: block; height: 100%; width: 100%; background: var(--fg); }
+.fake-btn { justify-self: start; display: inline-flex; gap: 8px; align-items: center; height: 46px; padding: 0 22px; border-radius: 999px; background: var(--btn-bg); color: var(--btn-fg); font-weight: 600; font-size: 15px; }
+
+/* sections */
+section { padding-block: clamp(48px, 8vw, 96px); border-top: 1px solid var(--line); }
+h2 { margin: 12px 0 0; font-size: clamp(32px, 5.5vw, 56px); line-height: 1.04; letter-spacing: -.04em; font-weight: 800; text-wrap: balance; max-width: 18ch; }
+.sub { margin: 18px 0 0; max-width: 56ch; color: var(--muted); }
+
+.grid3 { margin-top: 44px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.feat { padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); display: grid; gap: 10px; align-content: start; }
+.feat .tile { margin-bottom: 8px; }
+.feat h3 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
+.feat p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* modes */
+.modes { margin-top: 44px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.mode { border: 1px solid var(--line); border-radius: 18px; padding: 26px; background: var(--panel); display: grid; gap: 14px; align-content: start; }
+.mode h3 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
+.mode p { margin: 0; color: var(--muted); font-size: 15px; }
+pre { margin: 0; padding: 16px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font: 400 13px/1.7 var(--mono); color: var(--muted); overflow-x: auto; }
+pre b { color: var(--fg); font-weight: 500; }
+
+/* steps: a real sequence */
+.steps { margin: 44px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; counter-reset: s; }
+.steps li { counter-increment: s; border-top: 1px solid var(--line); padding-top: 20px; }
+.steps li::before { content: counter(s); display: block; font-weight: 800; font-size: clamp(56px, 8vw, 88px); line-height: 1; letter-spacing: -.05em; margin-bottom: 14px; }
+.steps h3 { margin: 0 0 6px; font-size: 19px; letter-spacing: -.02em; }
+.steps p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* download panel */
+.dl { border: 1px solid var(--line); border-radius: 24px; background: var(--panel); padding: clamp(28px, 6vw, 64px); display: grid; gap: 22px; }
+.dl h2 { max-width: 14ch; }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); column-gap: 40px; border-top: 1px solid var(--line); }
+.kv div { padding: 16px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; }
+.kv span { color: var(--faint); }
+.kv b { font: 500 13px var(--mono); text-align: right; }
+.note { padding: 16px 18px; border-radius: 14px; background: var(--panel-2); color: var(--muted); font-size: 14px; }
+.note strong { color: var(--fg); font-weight: 600; }
+
+footer { border-top: 1px solid var(--line); padding-block: 32px 48px; display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; color: var(--faint); font-size: 13px; }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--fg); }
+
+@media (prefers-reduced-motion: reduce) { .url i { animation: none; } .btn { transition: none; } }
+</style>
+
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#top" aria-label="WebGrabber home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#f4f4f5"/><path d="M7 10.5L11.5 22L16 13.5L20.5 22L25 10.5" fill="none" stroke="#111113" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      WebGrabber
+    </a>
+    <div class="nav-links">
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#formats">Formats</a>
+      <a href="https://discord.com/invite/cwxeXehAFX">Discord</a>
+      <a class="btn btn-main btn-sm" href="https://github.com/b62082826-gif/Web-Cloner/releases/latest/download/WebGrabberPro-win-x64.zip">Download</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="eyebrow">Website downloader for Windows</div>
+    <h1>Let's grab a website.</h1>
+    <p class="lede">Paste a link and WebGrabber saves the page with its images, fonts and styles, so it opens offline exactly as you saw it.</p>
+    <div class="cta">
+      <a class="btn btn-main" href="https://github.com/b62082826-gif/Web-Cloner/releases/latest/download/WebGrabberPro-win-x64.zip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>
+        Download for Windows
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/b62082826-gif/Web-Cloner">View on GitHub</a>
+    </div>
+    <div class="meta"><span>Build 21, latest</span><span>Windows 10 / 11, 64-bit</span><span>65 MB zip</span><span>Updates itself</span></div>
+
+    <div class="shot" role="img" aria-label="The WebGrabber home screen with a website address typed in">
+      <div class="shot-bar"><span>WebGrabber</span><span class="dots">&#8212; &nbsp; &#9633; &nbsp; &#10005;</span></div>
+      <div class="shot-body">
+        <h3>Let's grab a website.</h3>
+        <p>WebGrabber saves a web page with its images, fonts and styles, so you can open it offline.</p>
+        <div class="card">
+          <div class="card-head">
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z"/></svg></div>
+              <div><b style="font-size:15px">Website address</b><div style="font-size:12.5px;color:var(--faint)">Paste a link or type a domain</div></div>
+            </div>
+            <div class="seg"><span class="on">Separate files</span><span>Single file</span></div>
+          </div>
+          <div class="url">example.com<i></i></div>
+          <div class="track"><b></b></div>
+        </div>
+        <div class="card" style="display:flex;gap:12px;align-items:center">
+          <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>
+          <div style="min-width:0"><div style="font-size:12.5px;color:var(--faint)">Save to</div><div style="font-size:14px;overflow-wrap:anywhere">C:\Users\you\Websites</div></div>
+        </div>
+        <span class="fake-btn">Download website</span>
+      </div>
+    </div>
+  </header>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">What it does</div>
+    <h2>One link in, a working copy out.</h2>
+    <p class="sub">It reads the page, finds every file it needs, downloads them side by side and rewrites the links so nothing points back to the internet.</p>
+    <div class="grid3">
+      <div class="feat">
+        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></div>
+        <h3>Parallel downloads</h3>
+        <p>Files are fetched several at a time, so a large page finishes in seconds instead of minutes.</p>
+      </div>
+      <div class="feat">
+        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6"/></svg></div>
+        <h3>CSS that still works</h3>
+        <p>Fonts and background images referenced inside stylesheets are downloaded and their URLs are rewritten.</p>
+      </div>
+      <div class="feat">
+        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Live progress</h3>
+        <p>A big percentage, an elapsed timer and a log of every file, with a Cancel button that cleans up after itself.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="formats">
+  <div class="wrap">
+    <div class="eyebrow">Two ways to save</div>
+    <h2>Pick the shape of the copy.</h2>
+    <div class="modes">
+      <div class="mode">
+        <h3>Separate files</h3>
+        <p>A tidy folder you can open, edit and host. Every asset sits in its own sub-folder.</p>
+<pre><b>example.com_20260322_141502/</b>
+  index.html
+  css/
+  js/
+  images/
+  fonts/</pre>
+      </div>
+      <div class="mode">
+        <h3>Single file</h3>
+        <p>Everything packed into one .html file. Easy to email or drop into a chat, though larger.</p>
+<pre><b>example.com.html</b>
+  styles, images and fonts
+  embedded as data URIs</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>Three steps, in this order.</h2>
+    <ol class="steps">
+      <li><h3>Paste the address</h3><p>Type example.com or paste a full link. The bar under the field fills when the link looks valid.</p></li>
+      <li><h3>Choose a folder</h3><p>Pick where copies go. WebGrabber remembers it and your recent sites for next time.</p></li>
+      <li><h3>Press Download</h3><p>Watch it run, then open the copy in your browser or jump straight to the folder.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <div class="dl">
+      <div class="eyebrow">Free download</div>
+      <h2>Get WebGrabber.</h2>
+      <div class="cta" style="margin-top:0">
+        <a class="btn btn-main" href="https://github.com/b62082826-gif/Web-Cloner/releases/latest/download/WebGrabberPro-win-x64.zip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>
+          WebGrabberPro-win-x64.zip
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/b62082826-gif/Web-Cloner/releases">All releases</a>
+        <a class="btn btn-ghost" href="https://discord.com/invite/cwxeXehAFX">Join our Discord</a>
+      </div>
+      <div class="kv">
+        <div><span>Version</span><b>build 21</b></div>
+        <div><span>Platform</span><b>Windows 10 / 11, x64</b></div>
+        <div><span>Size</span><b>65.2 MB</b></div>
+        <div><span>Install</span><b>unzip and run, then it updates itself</b></div>
+        <div><span>Needs</span><b>Edge WebView2</b></div>
+      </div>
+      <div class="note"><strong>Windows shows a blue warning?</strong> The app is not code-signed yet. Choose <strong>More info</strong>, then <strong>Run anyway</strong>. Only grab sites you have the right to copy.</div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer>
+    <span>WebGrabber, built with .NET 8 and WebView2.</span>
+    <span style="display:flex;gap:20px"><a href="https://discord.com/invite/cwxeXehAFX">Discord</a><a href="https://github.com/b62082826-gif/Web-Cloner">Source on GitHub</a></span>
+  </footer>
+</div>
+
+</body></html>
