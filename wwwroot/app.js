@@ -344,6 +344,22 @@ function handleWebMessage(event) {
     if (!data || typeof data.type !== "string") return;
 
     switch (data.type) {
+        case "version":
+            $("ver").textContent = "build " + data.current;
+            break;
+
+        case "update":
+            showUpdate(data);
+            break;
+
+        case "updateProgress":
+            setUpdateProgress(Number(data.percent) || 0);
+            break;
+
+        case "updateError":
+            showUpdateError(data.message);
+            break;
+
         case "folder":
             $("folder").value = data.path || "";
             store(STORE_FOLDER, data.path || "");
@@ -409,7 +425,54 @@ function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
 }
 
+/* ---------- auto update ---------- */
+
+let updating = false;
+
+function showUpdate(data) {
+    $("updateTitle").textContent = "Update available";
+    $("updateSub").textContent =
+        "Build " + data.build + " · " + formatBytes(data.size) +
+        ". WebGrabber restarts when it is installed.";
+    $("updateBar").hidden = true;
+    $("updateNow").hidden = false;
+    $("updateNow").disabled = false;
+    $("update").hidden = false;
+}
+
+function setUpdateProgress(percent) {
+    updating = true;
+    $("updateTitle").textContent = "Downloading update " + percent + "%";
+    $("updateSub").textContent = "Keep this window open.";
+    $("updateBar").hidden = false;
+    $("updateFill").style.width = percent + "%";
+    $("updateNow").hidden = true;
+    $("updateLater").hidden = true;
+}
+
+function showUpdateError(message) {
+    updating = false;
+    $("updateTitle").textContent = "Update failed";
+    $("updateSub").textContent = message || "Try again later.";
+    $("updateBar").hidden = true;
+    $("updateNow").hidden = false;
+    $("updateNow").disabled = false;
+    $("updateLater").hidden = false;
+}
+
 function initializeApp() {
+    $("updateNow").addEventListener("click", () => {
+        if (updating) return;
+
+        $("updateNow").disabled = true;
+        setUpdateProgress(0);
+        send("update");
+    });
+
+    $("updateLater").addEventListener("click", () => {
+        $("update").hidden = true;
+    });
+
     applyTheme(load(STORE_THEME, "dark"));
 
     $("theme").addEventListener("click", () => {
