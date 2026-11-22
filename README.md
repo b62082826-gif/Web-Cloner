@@ -36,3 +36,7 @@ WebGrabber.Pro/
 ├── Program.cs
 └── WebGrabber.Pro.csproj
 ```
+
+## Website
+
+The landing page lives in `docs/index.html`. To publish it with GitHub Pages: Settings > Pages > Deploy from a branch > `main` / `/docs`.
