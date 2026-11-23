@@ -50,4 +50,4 @@ jobs:
           # tag v* -> release ชื่อตาม tag, push เข้า main -> release ชื่อ build-<เลขรัน>
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
           files: WebGrabberPro-win-x64.zip
-          generate_release_notes: true
+          body_path: CHANGELOG.md
