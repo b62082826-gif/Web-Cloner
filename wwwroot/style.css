@@ -1214,8 +1214,6 @@ html[data-theme="light"] body {
     background-attachment: fixed;
 }
 
-html[data-theme="light"] .logo rect { fill: #111113; }
-html[data-theme="light"] .logo path { stroke: #f4f4f2; }
 html[data-theme="light"] .logo { box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.35); }
 
 html[data-theme="light"] .window-buttons button { color: #66666e; }
