@@ -273,7 +273,8 @@ public sealed class MainForm : Form
         {
             type = "update",
             build = info.Build,
-            size = info.Size
+            size = info.Size,
+            notes = info.Notes
         });
     }
 

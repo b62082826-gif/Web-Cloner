@@ -437,6 +437,20 @@ function showUpdate(data) {
     $("updateBar").hidden = true;
     $("updateNow").hidden = false;
     $("updateNow").disabled = false;
+
+    const notes = $("updateNotes");
+    const items = String(data.notes || "").split("\n").filter(Boolean);
+
+    notes.innerHTML = "";
+
+    for (const text of items) {
+        const li = document.createElement("li");
+
+        li.textContent = text;
+        notes.appendChild(li);
+    }
+
+    notes.hidden = items.length === 0;
     $("update").hidden = false;
 }
 
@@ -444,6 +458,7 @@ function setUpdateProgress(percent) {
     updating = true;
     $("updateTitle").textContent = "Downloading update " + percent + "%";
     $("updateSub").textContent = "Keep this window open.";
+    $("updateNotes").hidden = true;
     $("updateBar").hidden = false;
     $("updateFill").style.width = percent + "%";
     $("updateNow").hidden = true;

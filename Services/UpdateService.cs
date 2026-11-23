@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace WebGrabberPro.Services;
 
-public sealed record UpdateInfo(int Build, string Tag, string AssetUrl, long Size);
+public sealed record UpdateInfo(int Build, string Tag, string AssetUrl, long Size, string Notes);
 
 /// <summary>
 /// Checks GitHub Releases for a newer build and swaps the app's files in place.
@@ -71,7 +71,10 @@ public static class UpdateService
                         build,
                         tag,
                         asset.GetProperty("browser_download_url").GetString() ?? "",
-                        asset.GetProperty("size").GetInt64());
+                        asset.GetProperty("size").GetInt64(),
+                        ExtractNotes(release.TryGetProperty("body", out var body)
+                            ? body.GetString()
+                            : null));
 
                     break;
                 }
@@ -84,6 +87,44 @@ public static class UpdateService
             // offline, rate limited, unexpected JSON: just skip the check
             return null;
         }
+    }
+
+    /// <summary>First "## " section of the release text, as up to six plain bullet lines.</summary>
+    private static string ExtractNotes(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return "";
+
+        var lines = new List<string>();
+        var inSection = false;
+
+        foreach (var raw in body.Split('\n'))
+        {
+            var line = raw.Trim();
+
+            if (line.StartsWith("## ", StringComparison.Ordinal))
+            {
+                if (inSection)
+                    break;
+
+                inSection = true;
+                continue;
+            }
+
+            if (!inSection)
+                continue;
+
+            if (line.StartsWith("- ", StringComparison.Ordinal) ||
+                line.StartsWith("* ", StringComparison.Ordinal))
+            {
+                lines.Add(line[2..].Replace("**", "").Trim());
+
+                if (lines.Count == 6)
+                    break;
+            }
+        }
+
+        return string.Join("\n", lines);
     }
 
     /// <summary>
