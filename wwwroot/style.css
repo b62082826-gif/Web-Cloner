@@ -1405,3 +1405,24 @@ html[data-theme="light"] .update-bar div {
         margin-inline: 28px;
     }
 }
+
+/* ---------- logo: dark tile on the dark theme, white tile on the light theme ---------- */
+
+.logo {
+    object-fit: contain;
+    border-radius: 7px;
+    box-shadow: none;
+}
+
+.logo-light {
+    display: none;
+}
+
+html[data-theme="light"] .logo-main {
+    display: none;
+}
+
+html[data-theme="light"] .logo-light {
+    display: block;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 6px 16px -8px rgba(60, 20, 120, 0.4);
+}
