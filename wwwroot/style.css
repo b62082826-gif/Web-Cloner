@@ -1452,3 +1452,240 @@ html[data-theme="light"] .logo-light {
 .update-notes li::marker {
     color: var(--faint);
 }
+
+/* =====================================================================
+   Violet brand pass: fonts bundled with the app, violet light, same
+   look as the website. Overrides the earlier blocks.
+   ===================================================================== */
+
+@font-face {
+    font-family: "Inter";
+    src: url("fonts/inter.woff2") format("woff2");
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Bricolage Grotesque";
+    src: url("fonts/bricolage.woff2") format("woff2");
+    font-weight: 200 800;
+    font-display: swap;
+}
+
+* {
+    font-family: "Inter", "Segoe UI Variable Text", "Segoe UI",
+        "Leelawadee UI", "Noto Sans Thai", system-ui, sans-serif;
+}
+
+h1,
+h2,
+.big,
+.brand-name {
+    font-family: "Bricolage Grotesque", "Inter", "Segoe UI Variable Display",
+        "Segoe UI", system-ui, sans-serif;
+}
+
+:root {
+    --bg: #0c0a12;
+    --panel: #15121f;
+    --panel-2: #1d1a2b;
+    --line: #2a2540;
+    --line-strong: #3a3356;
+    --track: #231f36;
+    --muted: #a8a3bd;
+    --faint: #756f8d;
+
+    --accent: #8b5cf6;
+    --accent-2: #c4b5fd;
+    --glow: rgba(139, 92, 246, 0.38);
+    --card-top: #1a1728;
+    --card-bot: #13101d;
+}
+
+::selection {
+    background: rgba(139, 92, 246, 0.45);
+}
+
+body {
+    background:
+        radial-gradient(820px 460px at 50% -10%, rgba(139, 92, 246, 0.28), transparent 70%),
+        radial-gradient(520px 380px at 0% 40%, rgba(99, 102, 241, 0.10), transparent 70%),
+        radial-gradient(560px 400px at 100% 100%, rgba(217, 70, 239, 0.09), transparent 70%),
+        var(--bg);
+    background-attachment: fixed;
+}
+
+h1 {
+    letter-spacing: -0.045em;
+}
+
+h1 em {
+    font-style: normal;
+    background: linear-gradient(100deg, #c4b5fd, #8b5cf6 55%, #e879f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.big {
+    background: linear-gradient(180deg, #ffffff 30%, #c4b5fd 150%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.tile {
+    color: var(--accent-2);
+    background: linear-gradient(180deg, #2b2542, #211d33);
+}
+
+.card-url:focus-within {
+    border-color: var(--accent);
+}
+
+.url-big {
+    caret-color: var(--accent-2);
+}
+
+.url-track .track-fill,
+.bar-fill,
+.update-bar div {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    box-shadow: 0 0 18px var(--glow);
+}
+
+.url-track .track-fill {
+    box-shadow: 0 0 14px var(--glow);
+}
+
+.btn-white,
+.btn-primary {
+    box-shadow:
+        0 12px 34px -10px var(--glow),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.btn-white:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+    box-shadow:
+        0 16px 40px -10px rgba(139, 92, 246, 0.6),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.segmented input:checked + span {
+    background: linear-gradient(180deg, #4a3d7a, #3b2f66);
+    color: #fff;
+}
+
+.recent-chip:hover {
+    border-color: var(--accent);
+}
+
+.badge:not(.badge-dim) {
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    color: #fff;
+    box-shadow: 0 22px 54px -14px rgba(139, 92, 246, 0.75);
+}
+
+.badge::after {
+    border-color: rgba(167, 139, 250, 0.3);
+}
+
+.badge-dim {
+    background: linear-gradient(180deg, #2b2542, #211d33);
+    color: var(--text);
+}
+
+.update {
+    border-color: rgba(139, 92, 246, 0.45);
+}
+
+.update-text b {
+    color: var(--text);
+}
+
+/* ---- light theme ---- */
+
+html[data-theme="light"] {
+    --bg: #f7f5fc;
+    --panel: #ffffff;
+    --panel-2: #f1eefa;
+    --line: #e0daf0;
+    --line-strong: #cfc7e6;
+    --track: #e6e0f4;
+    --muted: #5d5776;
+    --faint: #8e88a6;
+
+    --accent: #6d28d9;
+    --accent-2: #8b5cf6;
+    --glow: rgba(124, 58, 237, 0.24);
+    --card-top: #ffffff;
+    --card-bot: #fbfaff;
+}
+
+html[data-theme="light"] body {
+    background:
+        radial-gradient(820px 460px at 50% -10%, rgba(139, 92, 246, 0.20), transparent 70%),
+        radial-gradient(520px 380px at 100% 100%, rgba(217, 70, 239, 0.08), transparent 70%),
+        var(--bg);
+    background-attachment: fixed;
+}
+
+html[data-theme="light"] h1,
+html[data-theme="light"] .big {
+    background: linear-gradient(180deg, #17112a 40%, #5b4a8f 150%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-theme="light"] h1 em {
+    background: linear-gradient(100deg, #7c3aed, #6d28d9 55%, #c026d3);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-theme="light"] .tile {
+    color: var(--accent);
+    background: linear-gradient(180deg, #f5f2fd, #ebe6f8);
+}
+
+html[data-theme="light"] .url-big {
+    caret-color: var(--accent);
+}
+
+html[data-theme="light"] .url-track .track-fill,
+html[data-theme="light"] .bar-fill,
+html[data-theme="light"] .update-bar div {
+    background: linear-gradient(90deg, #6d28d9, #a78bfa);
+    box-shadow: none;
+}
+
+html[data-theme="light"] .track-fill.ok {
+    background: var(--ok);
+}
+
+html[data-theme="light"] .track-fill.bad {
+    background: var(--bad);
+}
+
+html[data-theme="light"] .segmented input:checked + span {
+    background: #fff;
+    color: var(--text);
+}
+
+html[data-theme="light"] .badge:not(.badge-dim) {
+    background: linear-gradient(135deg, #6d28d9, #8b5cf6);
+    color: #fff;
+}
+
+html[data-theme="light"] .badge-dim {
+    background: var(--panel-2);
+}
+
+html[data-theme="light"] .btn-white,
+html[data-theme="light"] .btn-primary {
+    background: linear-gradient(180deg, #2a1f4d, #17112a);
+}
+
+html[data-theme="light"] .update {
+    border-color: rgba(109, 40, 217, 0.35);
+}
