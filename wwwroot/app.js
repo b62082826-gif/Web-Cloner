@@ -202,6 +202,7 @@ function showDone(data) {
     $("barFail").style.width = "0";
 
     setScreen("done");
+    celebrate();
 
     requestAnimationFrame(() => requestAnimationFrame(() => {
         $("barOk").style.width = (files / total * 100) + "%";
@@ -421,6 +422,41 @@ function handleWebMessage(event) {
     }
 }
 
+const THEMES = ["dark", "light", "loy"];
+
+// Loy Krathong 2026 falls on 24 November: open in the festival theme for those days
+function isLoyKrathong() {
+    const now = new Date();
+
+    return now.getFullYear() === 2026 &&
+        now.getMonth() === 10 &&
+        now.getDate() >= 24 &&
+        now.getDate() <= 26;
+}
+
+// confetti on the finish screen, festival theme only
+function celebrate() {
+    if (document.documentElement.dataset.theme !== "loy") return;
+
+    const box = $("confetti");
+    const colors = ["#fbbf24", "#fde68a", "#f472b6", "#fb923c", "#fff7e6", "#93c5fd"];
+
+    box.innerHTML = "";
+
+    for (let i = 0; i < 46; i++) {
+        const piece = document.createElement("i");
+
+        piece.style.left = Math.random() * 100 + "%";
+        piece.style.background = colors[i % colors.length];
+        piece.style.animationDelay = Math.random() * 0.9 + "s";
+        piece.style.animationDuration = 2.6 + Math.random() * 1.8 + "s";
+        piece.style.setProperty("--drift", (Math.random() * 160 - 80) + "px");
+        box.appendChild(piece);
+    }
+
+    setTimeout(() => { box.innerHTML = ""; }, 5200);
+}
+
 function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
 }
@@ -488,11 +524,15 @@ function initializeApp() {
         $("update").hidden = true;
     });
 
-    applyTheme(load(STORE_THEME, "dark"));
+    const savedTheme = load(STORE_THEME, "");
+
+    applyTheme(THEMES.includes(savedTheme)
+        ? savedTheme
+        : (isLoyKrathong() ? "loy" : "dark"));
 
     $("theme").addEventListener("click", () => {
-        const next = document.documentElement.dataset.theme === "light"
-            ? "dark" : "light";
+        const current = document.documentElement.dataset.theme;
+        const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
 
         applyTheme(next);
         store(STORE_THEME, next);

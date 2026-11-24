@@ -9,6 +9,32 @@
 
 <body data-screen="home">
     <div class="app">
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <symbol id="krathong" viewBox="0 0 64 60">
+                <ellipse cx="32" cy="50" rx="29" ry="8" fill="#15803d"/>
+                <ellipse cx="32" cy="47" rx="24" ry="6.5" fill="#22c55e"/>
+                <g fill="#f9a8d4"><ellipse cx="14" cy="38" rx="6" ry="11" transform="rotate(-48 14 38)"/><ellipse cx="50" cy="38" rx="6" ry="11" transform="rotate(48 50 38)"/></g>
+                <g fill="#f472b6"><ellipse cx="21" cy="34" rx="6" ry="12" transform="rotate(-24 21 34)"/><ellipse cx="43" cy="34" rx="6" ry="12" transform="rotate(24 43 34)"/></g>
+                <ellipse cx="32" cy="34" rx="6.5" ry="13" fill="#fbcfe8"/>
+                <g fill="#fb923c"><circle cx="19" cy="47" r="3"/><circle cx="45" cy="47" r="3"/><circle cx="32" cy="50" r="3"/></g>
+                <rect x="29.5" y="20" width="5" height="17" rx="1.4" fill="#fff7e6"/>
+                <path d="M32 8c3.4 4 4.4 7 2.4 10.2-1.1 1.5-3.7 1.5-4.8 0C27.6 15 28.6 12 32 8z" fill="#fbbf24"/>
+                <path d="M32 12c1.5 2 2 3.4 1 5-.5.7-1.5.7-2 0-1-1.600-.5-3 1-5z" fill="#fff7e6"/>
+            </symbol>
+        </defs>
+    </svg>
+    <div class="loy-decor" aria-hidden="true">
+        <div class="moon"></div>
+        <div class="lanterns"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <svg class="kr k1"><use href="#krathong"/></svg>
+        <svg class="kr k2"><use href="#krathong"/></svg>
+        <svg class="kr k3"><use href="#krathong"/></svg>
+        <svg class="kr k4"><use href="#krathong"/></svg>
+        <svg class="waves w1" viewBox="0 0 2400 60" preserveAspectRatio="none"><path d="M0 26 Q 75 10 150 26 T 300 26 T 450 26 T 600 26 T 750 26 T 900 26 T 1050 26 T 1200 26 T 1350 26 T 1500 26 T 1650 26 T 1800 26 T 1950 26 T 2100 26 T 2250 26 T 2400 26 V60 H0 Z"/></svg>
+        <svg class="waves w2" viewBox="0 0 2400 60" preserveAspectRatio="none"><path d="M0 34 Q 75 22 150 34 T 300 34 T 450 34 T 600 34 T 750 34 T 900 34 T 1050 34 T 1200 34 T 1350 34 T 1500 34 T 1650 34 T 1800 34 T 1950 34 T 2100 34 T 2250 34 T 2400 34 V60 H0 Z"/></svg>
+    </div>
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
 
         <header class="titlebar" id="titlebar">
             <div class="brand">
@@ -16,6 +42,7 @@
                 <img class="logo logo-light" src="logo-light.png" alt="" width="26" height="26">
                 <span class="brand-name">WebGrabber</span>
                 <span class="ver" id="ver"></span>
+                <span class="bday">Happy Birthday!</span>
             </div>
 
             <div class="window-buttons">

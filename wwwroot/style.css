@@ -1689,3 +1689,268 @@ html[data-theme="light"] .btn-primary {
 html[data-theme="light"] .update {
     border-color: rgba(109, 40, 217, 0.35);
 }
+
+/* =====================================================================
+   Loy Krathong + birthday theme  (data-theme="loy")
+   Midnight river, candle gold, lotus pink. Extra decor is hidden in the
+   other themes.
+   ===================================================================== */
+
+.loy-decor,
+.confetti,
+.bday {
+    display: none;
+}
+
+html[data-theme="loy"] {
+    color-scheme: dark;
+
+    --bg: #070b1f;
+    --panel: #0e1533;
+    --panel-2: #16204a;
+    --line: #222d5c;
+    --line-strong: #33417a;
+    --track: #1a2350;
+    --text: #fff7e6;
+    --muted: #b6bbd8;
+    --faint: #7b83ae;
+
+    --accent: #fbbf24;
+    --accent-2: #fde68a;
+    --glow: rgba(251, 191, 36, 0.36);
+    --card-top: #111a3d;
+    --card-bot: #0b1230;
+}
+
+html[data-theme="loy"] body {
+    background:
+        radial-gradient(260px 260px at 88% 14%, rgba(255, 244, 205, 0.22), transparent 70%),
+        radial-gradient(900px 520px at 50% 110%, rgba(251, 146, 60, 0.20), transparent 70%),
+        linear-gradient(180deg, #060a1c 0%, #0a1330 62%, #0f1b43 100%);
+    background-attachment: fixed;
+}
+
+html[data-theme="loy"] .app {
+    position: relative;
+    overflow: hidden;
+}
+
+html[data-theme="loy"] .titlebar,
+html[data-theme="loy"] .screen,
+html[data-theme="loy"] .update {
+    position: relative;
+    z-index: 2;
+}
+
+html[data-theme="loy"] h1,
+html[data-theme="loy"] .big {
+    background: linear-gradient(180deg, #fff9e8 30%, #fde68a 150%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-theme="loy"] h1 em {
+    background: linear-gradient(100deg, #fde68a, #fbbf24 45%, #f472b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-theme="loy"] .tile {
+    color: var(--accent);
+    background: linear-gradient(180deg, #1f2b5c, #18224c);
+}
+
+html[data-theme="loy"] .url-big {
+    caret-color: var(--accent-2);
+}
+
+html[data-theme="loy"] .card-url:focus-within {
+    border-color: var(--accent);
+}
+
+html[data-theme="loy"] .url-track .track-fill,
+html[data-theme="loy"] .bar-fill,
+html[data-theme="loy"] .update-bar div {
+    background: linear-gradient(90deg, #f59e0b, #fde68a);
+    box-shadow: 0 0 18px var(--glow);
+}
+
+html[data-theme="loy"] .btn-white,
+html[data-theme="loy"] .btn-primary {
+    background: linear-gradient(180deg, #fff9e8, #fde68a);
+    color: #3a2a00;
+    box-shadow: 0 12px 34px -10px rgba(251, 191, 36, 0.6), inset 0 -2px 0 rgba(120, 80, 0, 0.18);
+}
+
+html[data-theme="loy"] .btn-white:hover:not(:disabled),
+html[data-theme="loy"] .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ffffff, #fef3c7);
+    box-shadow: 0 16px 40px -10px rgba(251, 191, 36, 0.8), inset 0 -2px 0 rgba(120, 80, 0, 0.14);
+}
+
+html[data-theme="loy"] .segmented input:checked + span {
+    background: linear-gradient(180deg, #fde68a, #fbbf24);
+    color: #3a2a00;
+}
+
+html[data-theme="loy"] .recent-chip:hover {
+    border-color: var(--accent);
+}
+
+html[data-theme="loy"] .badge:not(.badge-dim) {
+    background: linear-gradient(135deg, #f59e0b, #fde68a);
+    color: #3a2a00;
+    box-shadow: 0 22px 54px -14px rgba(251, 191, 36, 0.7);
+}
+
+html[data-theme="loy"] .badge::after {
+    border-color: rgba(253, 230, 138, 0.35);
+}
+
+html[data-theme="loy"] .badge-dim {
+    background: linear-gradient(180deg, #1f2b5c, #18224c);
+}
+
+html[data-theme="loy"] .update {
+    border-color: rgba(251, 191, 36, 0.5);
+}
+
+/* decor */
+
+html[data-theme="loy"] .loy-decor {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+html[data-theme="loy"] .moon {
+    position: absolute;
+    right: 9%;
+    top: 6%;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 36%, #fffdf2, #fde9a8 70%, #f6d77a);
+    box-shadow: 0 0 60px 18px rgba(253, 230, 138, 0.28), 0 0 160px 50px rgba(253, 230, 138, 0.12);
+    opacity: 0.9;
+}
+
+html[data-theme="loy"] .lanterns i {
+    position: absolute;
+    bottom: -40px;
+    width: 14px;
+    height: 18px;
+    border-radius: 5px 5px 7px 7px;
+    background: linear-gradient(180deg, #fde68a, #fb923c);
+    box-shadow: 0 0 18px 6px rgba(251, 146, 60, 0.5);
+    opacity: 0;
+    animation: lantern 16s linear infinite;
+}
+
+html[data-theme="loy"] .lanterns i:nth-child(1) { left: 6%;  animation-delay: 0s;   animation-duration: 18s; }
+html[data-theme="loy"] .lanterns i:nth-child(2) { left: 18%; animation-delay: -6s;  animation-duration: 15s; width: 10px; height: 13px; }
+html[data-theme="loy"] .lanterns i:nth-child(3) { left: 31%; animation-delay: -11s; animation-duration: 20s; }
+html[data-theme="loy"] .lanterns i:nth-child(4) { left: 47%; animation-delay: -3s;  animation-duration: 17s; width: 11px; height: 14px; }
+html[data-theme="loy"] .lanterns i:nth-child(5) { left: 62%; animation-delay: -9s;  animation-duration: 19s; }
+html[data-theme="loy"] .lanterns i:nth-child(6) { left: 76%; animation-delay: -14s; animation-duration: 16s; width: 10px; height: 13px; }
+html[data-theme="loy"] .lanterns i:nth-child(7) { left: 92%; animation-delay: -5s;  animation-duration: 21s; }
+
+@keyframes lantern {
+    0% { transform: translate(0, 0); opacity: 0; }
+    10% { opacity: 0.9; }
+    80% { opacity: 0.8; }
+    100% { transform: translate(24px, -105vh); opacity: 0; }
+}
+
+html[data-theme="loy"] .kr {
+    position: absolute;
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.35));
+    animation: bob 5s ease-in-out infinite;
+}
+
+html[data-theme="loy"] .kr.k1 { left: 5%;  bottom: 8px; width: 58px; height: 54px; }
+html[data-theme="loy"] .kr.k2 { left: 40%; bottom: 4px; width: 46px; height: 43px; animation-delay: -1.6s; }
+html[data-theme="loy"] .kr.k3 { left: 66%; bottom: 12px; width: 68px; height: 63px; animation-delay: -3.1s; }
+html[data-theme="loy"] .kr.k4 { left: 90%; bottom: 6px; width: 44px; height: 41px; animation-delay: -2.2s; }
+
+@keyframes bob {
+    0%, 100% { transform: translate(0, 0) rotate(-2deg); }
+    50% { transform: translate(14px, -5px) rotate(2deg); }
+}
+
+html[data-theme="loy"] .waves {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 200%;
+    height: 46px;
+    animation: flow 14s linear infinite;
+}
+
+.waves.w1 path { fill: rgba(20, 38, 96, 0.78); }
+.waves.w2 path { fill: rgba(12, 24, 66, 0.9); }
+html[data-theme="loy"] .waves.w2 { height: 34px; animation-duration: 9s; animation-direction: reverse; }
+
+@keyframes flow {
+    to { transform: translateX(-50%); }
+}
+
+/* birthday chip in the title bar */
+
+html[data-theme="loy"] .bday {
+    display: inline-block;
+    margin-left: 14px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #fbbf24, #f472b6);
+    color: #2a1500;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    animation: wiggle 3.6s ease-in-out infinite;
+}
+
+@keyframes wiggle {
+    0%, 86%, 100% { transform: rotate(0); }
+    90% { transform: rotate(-4deg) scale(1.06); }
+    95% { transform: rotate(4deg) scale(1.06); }
+}
+
+/* confetti */
+
+html[data-theme="loy"] .confetti {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.confetti i {
+    position: absolute;
+    top: -16px;
+    width: 8px;
+    height: 14px;
+    border-radius: 2px;
+    opacity: 0;
+    animation: fall 3.4s ease-in forwards;
+}
+
+@keyframes fall {
+    0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+    100% { transform: translate(var(--drift, 0), 105vh) rotate(720deg); opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-theme="loy"] .lanterns i,
+    html[data-theme="loy"] .kr,
+    html[data-theme="loy"] .waves,
+    html[data-theme="loy"] .bday,
+    .confetti i {
+        animation: none;
+    }
+}
