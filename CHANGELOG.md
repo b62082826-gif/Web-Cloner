@@ -1,12 +1,15 @@
 # What's new
 
 ## Latest
-- New purple W logo, with a dark and a light version that follow the theme
-- App icon in the taskbar and on the .exe now matches the new logo
-- Website refreshed with the new logo, a centered menu pill and a Discord link
-- Update banner now shows what changed before you install
+- Fresh violet look: soft purple glow, new headline font and a purple progress bar
+- Fonts now ship inside the app, so it looks the same on every PC and offline
+- Finish screen with a violet badge and a bigger result
+- Light theme matches the new colors
 
 ## Earlier this week
+- New purple W logo, with a dark and a light version that follow the theme
+- Update banner shows what changed before you install
+- Website redesigned with a live demo of the app
 - Automatic updates: WebGrabber checks for a newer build on start and installs it with one click
 - Light theme, switched with the sun button in the title bar
 - Smoother look: soft glow, gradient buttons, animated progress bar and finish screen
