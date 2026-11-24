@@ -1,6 +1,7 @@
 # What's new
 
 ## Latest
+- Loy Krathong and birthday theme: midnight river, floating krathong, lanterns and confetti on the finish screen. The sun button now cycles dark, light and festival; it opens in the festival theme on 24 to 26 November 2026
 - Fresh violet look: soft purple glow, new headline font and a purple progress bar
 - Fonts now ship inside the app, so it looks the same on every PC and offline
 - Finish screen with a violet badge and a bigger result
