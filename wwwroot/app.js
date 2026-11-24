@@ -9,6 +9,8 @@ const STORE_FOLDER = "webgrabber.folder";
 const STORE_MODE = "webgrabber.mode";
 const STORE_HISTORY = "webgrabber.history";
 const STORE_THEME = "webgrabber.theme";
+const STORE_GREETING = "webgrabber.greeting";
+const STORE_PARTY = "webgrabber.party";
 
 const MODE_HINTS = {
     separated: "Saves index.html plus css, js, images and fonts folders. Easy to edit.",
@@ -422,7 +424,9 @@ function handleWebMessage(event) {
     }
 }
 
-const THEMES = ["dark", "light", "loy"];
+const THEMES = ["dark", "light", "loy", "party"];
+const FESTIVE = ["loy", "party"];
+const THEME_NAMES = { dark: "Dark", light: "Light", loy: "Loy Krathong", party: "Party" };
 
 // Loy Krathong 2026 falls on 24 November: open in the festival theme for those days
 function isLoyKrathong() {
@@ -436,10 +440,10 @@ function isLoyKrathong() {
 
 // confetti on the finish screen, festival theme only
 function celebrate() {
-    if (document.documentElement.dataset.theme !== "loy") return;
+    if (!FESTIVE.includes(document.documentElement.dataset.theme)) return;
 
     const box = $("confetti");
-    const colors = ["#fbbf24", "#fde68a", "#f472b6", "#fb923c", "#fff7e6", "#93c5fd"];
+    const colors = ["#fbbf24", "#fde68a", "#f472b6", "#fb923c", "#fff7e6", "#93c5fd", "#34d399", "#a78bfa"];
 
     box.innerHTML = "";
 
@@ -459,6 +463,73 @@ function celebrate() {
 
 function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
+    $("theme").title = "Theme: " + (THEME_NAMES[theme] || theme) + " (click to change)";
+
+    if (!FESTIVE.includes(theme)) $("festPanel").hidden = true;
+}
+
+/* ---------- festive message and color (editable) ---------- */
+
+function getGreeting() {
+    return load(STORE_GREETING, "Happy Birthday!");
+}
+
+function renderGreeting() {
+    const text = getGreeting().trim();
+
+    $("bday").textContent = text || "Add a message";
+    $("doneGreet").textContent = text;
+}
+
+function applyParty(color) {
+    document.documentElement.style.setProperty("--party", color);
+
+    document.querySelectorAll(".sw").forEach((button) => {
+        button.classList.toggle("on", button.dataset.color === color);
+    });
+}
+
+function initFestive() {
+    const input = $("greetInput");
+    const panel = $("festPanel");
+
+    input.value = getGreeting();
+    renderGreeting();
+    applyParty(load(STORE_PARTY, "#f472b6"));
+
+    $("bday").addEventListener("click", () => {
+        panel.hidden = !panel.hidden;
+
+        if (!panel.hidden) {
+            input.focus();
+            input.select();
+        }
+    });
+
+    input.addEventListener("input", () => {
+        store(STORE_GREETING, input.value);
+        renderGreeting();
+    });
+
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === "Escape") panel.hidden = true;
+    });
+
+    $("festDone").addEventListener("click", () => { panel.hidden = true; });
+
+    document.querySelectorAll(".sw").forEach((button) => {
+        button.addEventListener("click", () => {
+            store(STORE_PARTY, button.dataset.color);
+            applyParty(button.dataset.color);
+        });
+    });
+
+    document.addEventListener("mousedown", (event) => {
+        if (panel.hidden) return;
+        if (event.target.closest("#festPanel, #bday")) return;
+
+        panel.hidden = true;
+    });
 }
 
 /* ---------- auto update ---------- */
@@ -524,6 +595,8 @@ function initializeApp() {
         $("update").hidden = true;
     });
 
+    initFestive();
+
     const savedTheme = load(STORE_THEME, "");
 
     applyTheme(THEMES.includes(savedTheme)
@@ -575,13 +648,13 @@ function initializeApp() {
     // frameless window: hold the top bar to drag
     $("titlebar").addEventListener("mousedown", (event) => {
         if (event.button !== 0) return;
-        if (event.target.closest(".window-buttons")) return;
+        if (event.target.closest(".window-buttons, .bday")) return;
 
         send("drag");
     });
 
     $("titlebar").addEventListener("dblclick", (event) => {
-        if (event.target.closest(".window-buttons")) return;
+        if (event.target.closest(".window-buttons, .bday")) return;
 
         send("maximize");
     });
