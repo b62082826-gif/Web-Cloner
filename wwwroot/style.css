@@ -1954,3 +1954,333 @@ html[data-theme="loy"] .confetti {
         animation: none;
     }
 }
+
+/* =====================================================================
+   Party theme (data-theme="party") with an editable message and color.
+   The color comes from --party, set by the swatches in the message panel.
+   ===================================================================== */
+
+.party-decor,
+.fest-panel,
+.greet,
+.swatch-row {
+    display: none;
+}
+
+/* the message chip is shared by both festive themes */
+
+html[data-theme="loy"] .bday,
+html[data-theme="party"] .bday {
+    display: inline-block;
+    margin-left: 14px;
+    padding: 4px 12px;
+    border: 0;
+    border-radius: 999px;
+    color: #2a1500;
+    font: 700 12px "Inter", "Segoe UI", system-ui, sans-serif;
+    cursor: pointer;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+html[data-theme="loy"] .bday:hover,
+html[data-theme="party"] .bday:hover {
+    filter: brightness(1.08);
+}
+
+html[data-theme="loy"] .greet,
+html[data-theme="party"] .greet {
+    display: block;
+    margin-bottom: 4px;
+    font-family: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-align: center;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent), #f472b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.greet:empty {
+    display: none !important;
+}
+
+html[data-theme="loy"] .fest-panel:not([hidden]),
+html[data-theme="party"] .fest-panel:not([hidden]) {
+    display: grid;
+    gap: 10px;
+    position: absolute;
+    z-index: 6;
+    top: 48px;
+    left: 150px;
+    width: 300px;
+    max-width: calc(100% - 24px);
+    padding: 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--card-top), var(--card-bot));
+    box-shadow: 0 24px 60px -16px rgba(0, 0, 0, 0.85);
+    animation: enter 0.18s ease both;
+}
+
+html[data-theme="loy"] .app,
+html[data-theme="party"] .app {
+    position: relative;
+}
+
+.fest-panel label {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.fest-panel input {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+}
+
+.fest-panel input:focus {
+    border-color: var(--accent);
+}
+
+.fest-panel .chip {
+    justify-self: end;
+}
+
+html[data-theme="party"] .swatch-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sw {
+    width: 28px;
+    height: 28px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.sw.on {
+    border-color: #fff;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+
+/* ---- party palette ---- */
+
+html[data-theme="party"] {
+    color-scheme: dark;
+
+    --bg: #12091f;
+    --panel: #1b1030;
+    --panel-2: #26173f;
+    --line: #33224f;
+    --line-strong: #47306b;
+    --track: #2a1b45;
+    --text: #fff3fb;
+    --muted: #c6b6dc;
+    --faint: #8d7aa3;
+
+    --accent: var(--party, #f472b6);
+    --accent-2: color-mix(in srgb, var(--accent) 52%, #ffffff);
+    --glow: color-mix(in srgb, var(--accent) 42%, transparent);
+    --card-top: #20123a;
+    --card-bot: #170d2a;
+}
+
+html[data-theme="party"] body {
+    background:
+        radial-gradient(780px 420px at 50% -8%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%),
+        radial-gradient(640px 420px at 50% 112%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+        linear-gradient(180deg, #12091f 0%, #1a0d2e 100%);
+    background-attachment: fixed;
+}
+
+html[data-theme="party"] .app {
+    overflow: hidden;
+}
+
+html[data-theme="party"] .titlebar,
+html[data-theme="party"] .screen,
+html[data-theme="party"] .update {
+    position: relative;
+    z-index: 2;
+}
+
+html[data-theme="party"] h1,
+html[data-theme="party"] .big {
+    background: linear-gradient(180deg, #ffffff 30%, var(--accent-2) 160%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-theme="party"] h1 em {
+    background: linear-gradient(100deg, var(--accent-2), var(--accent) 50%, #fbbf24);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-theme="party"] .tile {
+    color: var(--accent-2);
+    background: linear-gradient(180deg, #2f1d4d, #261740);
+}
+
+html[data-theme="party"] .url-big {
+    caret-color: var(--accent-2);
+}
+
+html[data-theme="party"] .card-url:focus-within {
+    border-color: var(--accent);
+}
+
+html[data-theme="party"] .url-track .track-fill,
+html[data-theme="party"] .bar-fill,
+html[data-theme="party"] .update-bar div {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    box-shadow: 0 0 18px var(--glow);
+}
+
+html[data-theme="party"] .btn-white,
+html[data-theme="party"] .btn-primary {
+    background: linear-gradient(180deg, #ffffff, var(--accent-2));
+    color: #24102f;
+    box-shadow: 0 12px 34px -10px var(--glow), inset 0 -2px 0 rgba(60, 20, 70, 0.16);
+}
+
+html[data-theme="party"] .btn-white:hover:not(:disabled),
+html[data-theme="party"] .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--accent) 36%, #ffffff));
+    box-shadow: 0 16px 40px -10px var(--accent), inset 0 -2px 0 rgba(60, 20, 70, 0.12);
+}
+
+html[data-theme="party"] .segmented input:checked + span {
+    background: linear-gradient(180deg, var(--accent-2), var(--accent));
+    color: #24102f;
+}
+
+html[data-theme="party"] .recent-chip:hover {
+    border-color: var(--accent);
+}
+
+html[data-theme="party"] .badge:not(.badge-dim) {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #24102f;
+    box-shadow: 0 22px 54px -14px var(--accent);
+}
+
+html[data-theme="party"] .badge::after {
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+html[data-theme="party"] .badge-dim {
+    background: linear-gradient(180deg, #2f1d4d, #261740);
+}
+
+html[data-theme="party"] .update {
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+html[data-theme="party"] .bday {
+    background: linear-gradient(90deg, var(--accent), #fbbf24);
+}
+
+/* ---- party decor ---- */
+
+html[data-theme="party"] .party-decor {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.bunting {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    width: 100%;
+    height: 64px;
+    opacity: 0.95;
+}
+
+.bunting .str {
+    fill: none;
+    stroke: var(--line-strong);
+    stroke-width: 1.6;
+}
+
+.bunting .p0 { fill: var(--accent); }
+.bunting .p1 { fill: #fbbf24; }
+.bunting .p2 { fill: #38bdf8; }
+.bunting .p3 { fill: #a78bfa; }
+.bunting .p4 { fill: #34d399; }
+
+.balloons i {
+    position: absolute;
+    bottom: -90px;
+    width: 38px;
+    height: 48px;
+    border-radius: 50% 50% 46% 46%;
+    background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.55), transparent 34%), var(--b, #f472b6);
+    opacity: 0;
+    animation: balloon 17s linear infinite;
+}
+
+.balloons i::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    width: 8px;
+    height: 7px;
+    margin-left: -4px;
+    background: var(--b, #f472b6);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.balloons i::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 1px;
+    height: 46px;
+    margin-top: 2px;
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.balloons i:nth-child(1) { left: 5%;  --b: var(--accent); animation-delay: 0s; }
+.balloons i:nth-child(2) { left: 17%; --b: #fbbf24; animation-delay: -5s;  animation-duration: 20s; width: 30px; height: 38px; }
+.balloons i:nth-child(3) { left: 33%; --b: #38bdf8; animation-delay: -10s; animation-duration: 18s; }
+.balloons i:nth-child(4) { left: 50%; --b: #a78bfa; animation-delay: -2s;  animation-duration: 22s; width: 32px; height: 40px; }
+.balloons i:nth-child(5) { left: 66%; --b: #34d399; animation-delay: -13s; animation-duration: 19s; }
+.balloons i:nth-child(6) { left: 80%; --b: var(--accent); animation-delay: -7s; animation-duration: 21s; width: 30px; height: 38px; }
+.balloons i:nth-child(7) { left: 93%; --b: #fb923c; animation-delay: -15s; animation-duration: 18s; }
+
+@keyframes balloon {
+    0% { transform: translate(0, 0) rotate(-3deg); opacity: 0; }
+    8% { opacity: 0.9; }
+    50% { transform: translate(18px, -55vh) rotate(3deg); }
+    90% { opacity: 0.85; }
+    100% { transform: translate(-6px, -112vh) rotate(-3deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .balloons i {
+        animation: none;
+    }
+}

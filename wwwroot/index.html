@@ -35,6 +35,23 @@
         <svg class="waves w2" viewBox="0 0 2400 60" preserveAspectRatio="none"><path d="M0 34 Q 75 22 150 34 T 300 34 T 450 34 T 600 34 T 750 34 T 900 34 T 1050 34 T 1200 34 T 1350 34 T 1500 34 T 1650 34 T 1800 34 T 1950 34 T 2100 34 T 2250 34 T 2400 34 V60 H0 Z"/></svg>
     </div>
     <div class="confetti" id="confetti" aria-hidden="true"></div>
+    <div class="party-decor" aria-hidden="true">
+        <svg class="bunting" viewBox="0 0 1200 64" preserveAspectRatio="xMidYMin slice"><path class="str" d="M0 6Q150 46 300 6 M300 6Q450 46 600 6 M600 6Q750 46 900 6 M900 6Q1050 46 1200 6"/><path class="p0" d="M19 13L41 13L30 39Z"/><path class="p1" d="M49 19L71 19L60 45Z"/><path class="p2" d="M79 23L101 23L90 49Z"/><path class="p3" d="M109 25L131 25L120 51Z"/><path class="p4" d="M139 26L161 26L150 52Z"/><path class="p0" d="M169 25L191 25L180 51Z"/><path class="p1" d="M199 23L221 23L210 49Z"/><path class="p2" d="M229 19L251 19L240 45Z"/><path class="p3" d="M259 13L281 13L270 39Z"/><path class="p4" d="M319 13L341 13L330 39Z"/><path class="p0" d="M349 19L371 19L360 45Z"/><path class="p1" d="M379 23L401 23L390 49Z"/><path class="p2" d="M409 25L431 25L420 51Z"/><path class="p3" d="M439 26L461 26L450 52Z"/><path class="p4" d="M469 25L491 25L480 51Z"/><path class="p0" d="M499 23L521 23L510 49Z"/><path class="p1" d="M529 19L551 19L540 45Z"/><path class="p2" d="M559 13L581 13L570 39Z"/><path class="p3" d="M619 13L641 13L630 39Z"/><path class="p4" d="M649 19L671 19L660 45Z"/><path class="p0" d="M679 23L701 23L690 49Z"/><path class="p1" d="M709 25L731 25L720 51Z"/><path class="p2" d="M739 26L761 26L750 52Z"/><path class="p3" d="M769 25L791 25L780 51Z"/><path class="p4" d="M799 23L821 23L810 49Z"/><path class="p0" d="M829 19L851 19L840 45Z"/><path class="p1" d="M859 13L881 13L870 39Z"/><path class="p2" d="M919 13L941 13L930 39Z"/><path class="p3" d="M949 19L971 19L960 45Z"/><path class="p4" d="M979 23L1001 23L990 49Z"/><path class="p0" d="M1009 25L1031 25L1020 51Z"/><path class="p1" d="M1039 26L1061 26L1050 52Z"/><path class="p2" d="M1069 25L1091 25L1080 51Z"/><path class="p3" d="M1099 23L1121 23L1110 49Z"/><path class="p4" d="M1129 19L1151 19L1140 45Z"/><path class="p0" d="M1159 13L1181 13L1170 39Z"/></svg>
+        <div class="balloons"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="fest-panel" id="festPanel" hidden>
+        <label for="greetInput">Your message</label>
+        <input id="greetInput" type="text" maxlength="28" placeholder="Happy Birthday!" autocomplete="off" spellcheck="false">
+        <div class="swatch-row" id="swatches" role="group" aria-label="Party color">
+            <button type="button" class="sw" data-color="#f472b6" style="background:#f472b6" aria-label="Pink"></button>
+            <button type="button" class="sw" data-color="#fbbf24" style="background:#fbbf24" aria-label="Gold"></button>
+            <button type="button" class="sw" data-color="#34d399" style="background:#34d399" aria-label="Mint"></button>
+            <button type="button" class="sw" data-color="#38bdf8" style="background:#38bdf8" aria-label="Sky"></button>
+            <button type="button" class="sw" data-color="#a78bfa" style="background:#a78bfa" aria-label="Violet"></button>
+            <button type="button" class="sw" data-color="#fb7185" style="background:#fb7185" aria-label="Coral"></button>
+        </div>
+        <button id="festDone" class="chip" type="button">Done</button>
+    </div>
 
         <header class="titlebar" id="titlebar">
             <div class="brand">
@@ -42,7 +59,7 @@
                 <img class="logo logo-light" src="logo-light.png" alt="" width="26" height="26">
                 <span class="brand-name">WebGrabber</span>
                 <span class="ver" id="ver"></span>
-                <span class="bday">Happy Birthday!</span>
+                <button type="button" class="bday" id="bday" title="Edit message">Happy Birthday!</button>
             </div>
 
             <div class="window-buttons">
@@ -198,6 +215,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
                 </div>
 
+                <div class="greet" id="doneGreet"></div>
                 <div class="eyebrow center-eyebrow">You just saved</div>
                 <div class="big big-xl" id="statSize">0 B</div>
                 <p class="lede center-lede" id="doneSub"></p>
