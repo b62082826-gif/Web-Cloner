@@ -1,44 +1,20 @@
 <!doctype html>
-<html>
-    <head>
-        <meta charset=utf8>
-        <meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
-        <style>
-            :root {
-                color-scheme: light;
-                box-sizing: border-box;
-                padding-top: env(safe-area-inset-top,0px);
-                padding-bottom: env(safe-area-inset-bottom,0px)
-            }
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WebGrabber - Website downloader for Windows</title>
+<meta name="description" content="Paste a link and WebGrabber saves the page with its images, fonts and styles, so it opens offline exactly as you saw it.">
+<meta name="color-scheme" content="dark light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+/* Base rules kept from the first (generated) style block */
+body { margin: 0; padding: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+img { max-width: 100%; }
+[hidden]:not([hidden=until-found i]) { display: none !important; }
 
-            html {
-                scroll-padding-top: env(safe-area-inset-top,0px)
-            }
-
-            body {
-                margin: 0;
-                padding: 0;
-                font: 14px -apple-system,BlinkMacSystemFont,sans-serif;
-                background: #fff;
-                color: #000
-            }
-
-            img {
-                max-width: 100%
-            }
-
-            [hidden]:not([hidden=until-found i]) {
-                display: none!important
-            }
-        </style>
-    </head>
-    <body>
-        <title>index.html</title>
-        <meta name="claude:viewport-fit-sides" content="cover">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-        <style>
             /* Layout: dark-first, one violet light source (the W logo's glow) behind the hero; a live mock of the app in the first screen; a bento of real features; three true steps; one download panel. */
             :root {
                 --bg: #0c0a12;
@@ -1602,7 +1578,81 @@
                     transition: none;
                 }
             }
-        </style>
+
+/* ---- language switch, FAQ, Thai typography ---- */
+.lang {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    font: 600 13px var(--font);
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+}
+.lang:hover { color: var(--fg); border-color: var(--accent); }
+
+@media (max-width: 760px) {
+    .nav-links .hide-md { display: none; }
+}
+@media (max-width: 620px) {
+    .nav-links .hide-xs { display: none; }
+}
+@media (max-width: 560px) {
+    .brand span { display: none; }
+}
+
+.faq { margin-top: 36px; display: grid; gap: 10px; max-width: 820px; }
+.faq details {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+    transition: border-color .15s;
+}
+.faq details[open] { border-color: var(--accent); }
+.faq summary {
+    list-style: none;
+    cursor: pointer;
+    position: relative;
+    padding: 18px 54px 18px 20px;
+    font: 600 16px/1.45 var(--font);
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+    content: "+";
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font: 500 22px var(--mono);
+    color: var(--accent-2);
+}
+.faq details[open] summary::after { content: "\2212"; }
+.faq p {
+    margin: 0;
+    padding: 0 20px 18px;
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 68ch;
+}
+.faq p strong { color: var(--fg); font-weight: 600; }
+
+:root[lang="th"] {
+    --display: "Bricolage Grotesque", "Noto Sans Thai", "Inter", "Segoe UI", system-ui, sans-serif;
+    --font: "Inter", "Noto Sans Thai", "Segoe UI", system-ui, sans-serif;
+}
+:root[lang="th"] :is(h1, h2, h3) { letter-spacing: 0; }
+:root[lang="th"] .hero h1 {
+    max-width: 14ch;
+    font-size: clamp(40px, 8.5vw, 96px);
+    line-height: 1.15;
+}
+:root[lang="th"] h2 { max-width: 20ch; line-height: 1.2; font-size: clamp(30px, 5.2vw, 54px); }
+:root[lang="th"] .eyebrow { letter-spacing: .04em; text-transform: none; }
+</style>
+</head>
+<body>
         <svg width="0" height="0" style="position:absolute" aria-hidden="true">
             <defs>
                 <symbol id="krathong" viewBox="0 0 64 60">
@@ -1637,10 +1687,12 @@
                         <span>WebGrabber</span>
                     </a>
                     <div class="nav-links">
-                        <a class="hide-sm" href="#features">Features</a>
-                        <a class="hide-sm" href="#steps">How it works</a>
+                        <a class="hide-sm" href="#features" data-i18n="nav.features">Features</a>
+                        <a class="hide-sm hide-xs" href="#steps" data-i18n="nav.steps">How it works</a>
+                        <a class="hide-sm hide-md" href="#faq" data-i18n="nav.faq">FAQ</a>
                         <a href="https://discord.com/invite/cwxeXehAFX">Discord</a>
-                        <a class="dl-link" href="https://github.com/b62082826-gif/Web-Cloner/releases/latest/download/WebGrabberPro-win-x64.zip">Download</a>
+                        <button type="button" class="lang" id="langBtn" aria-label="Switch language"></button>
+                        <a class="dl-link" href="https://github.com/b62082826-gif/Web-Cloner/releases/latest/download/WebGrabberPro-win-x64.zip" data-i18n="nav.download">Download</a>
                     </div>
                 </nav>
             </div>
@@ -1728,26 +1780,24 @@
                 </div>
             </div>
             <div class="wrap">
-                <div class="eyebrow">Website downloader for Windows</div>
-                <h1>
-                    Let's <em>grab</em> a website.
-                </h1>
-                <p class="lede">Paste a link and WebGrabber saves the page with its images, fonts and styles, so it opens offline exactly as you saw it.</p>
+                <div class="eyebrow" data-i18n="hero.eyebrow">Website downloader for Windows</div>
+                <h1 data-i18n-html="hero.h1">Let's <em>grab</em> a website.</h1>
+                <p class="lede" data-i18n="hero.lede">Paste a link and WebGrabber saves the page with its images, fonts and styles, so it opens offline exactly as you saw it.</p>
                 <div class="cta">
                     <a class="btn btn-main" href="https://github.com/b62082826-gif/Web-Cloner/releases/latest/download/WebGrabberPro-win-x64.zip">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M12 4v11m0 0l-4-4m4 4l4-4"/>
                             <path d="M5 19h14"/>
                         </svg>
-                        Download for Windows
+                        <span data-i18n="hero.download">Download for Windows</span>
       
                     </a>
-                    <a class="btn btn-ghost" href="https://discord.com/invite/cwxeXehAFX">Join our Discord</a>
+                    <a class="btn btn-ghost" href="https://discord.com/invite/cwxeXehAFX" data-i18n="join">Join our Discord</a>
                 </div>
                 <div class="meta">
                     <span id="vMeta">Build 40, latest</span>
-                    <span>Windows 10 / 11, 64-bit</span>
-                    <span>Updates itself</span>
+                    <span data-i18n="meta.os">Windows 10 / 11, 64-bit</span>
+                    <span data-i18n="meta.upd">Updates itself</span>
                 </div>
                 <div class="stage">
                     <div class="chips" aria-hidden="true">
@@ -1840,13 +1890,13 @@
         </header>
         <section id="features">
             <div class="wrap">
-                <div class="eyebrow">What it does</div>
-                <h2>One link in, a working copy out.</h2>
-                <p class="sub-lg">WebGrabber reads the page, finds every file it needs, downloads them side by side and rewrites the links so nothing points back to the internet.</p>
+                <div class="eyebrow" data-i18n="f.eyebrow">What it does</div>
+                <h2 data-i18n="f.h2">One link in, a working copy out.</h2>
+                <p class="sub-lg" data-i18n="f.sub">WebGrabber reads the page, finds every file it needs, downloads them side by side and rewrites the links so nothing points back to the internet.</p>
                 <div class="bento">
                     <div class="b s4">
-                        <h3>Many files at once</h3>
-                        <p>Pages, stylesheets, scripts, fonts and images download in parallel, so a large page finishes in seconds. Anything that fails keeps its live link instead of breaking the page.</p>
+                        <h3 data-i18n="b1.h">Many files at once</h3>
+                        <p data-i18n="b1.p">Pages, stylesheets, scripts, fonts and images download in parallel, so a large page finishes in seconds. Anything that fails keeps its live link instead of breaking the page.</p>
                         <div class="files" aria-hidden="true">
                             <div>
                                 <span>index.html</span>
@@ -1876,35 +1926,31 @@
                         </div>
                     </div>
                     <div class="b s2">
-                        <h3>Links that work offline</h3>
-                        <p>Fonts and backgrounds inside CSS are saved too, and their URLs are rewritten.</p>
+                        <h3 data-i18n="b2.h">Links that work offline</h3>
+                        <p data-i18n="b2.p">Fonts and backgrounds inside CSS are saved too, and their URLs are rewritten.</p>
                         <div class="rewrite" aria-hidden="true">
                             <code class="old">https://cdn.shop.com/app.css</code>
                             <code class="new">css/app.css</code>
                         </div>
                     </div>
                     <div class="b s3">
-                        <h3>Separate files</h3>
-                        <p>A tidy folder you can open, edit and host. Every asset sits in its own sub-folder.</p>
-                        <pre>
-                            <b>example.com_20261124_141502/</b>
-                            index.html
+                        <h3 data-i18n="b3.h">Separate files</h3>
+                        <p data-i18n="b3.p">A tidy folder you can open, edit and host. Every asset sits in its own sub-folder.</p>
+                        <pre><b>example.com_20261124_141502/</b>
+  index.html
   css/  js/
-  images/  fonts/
-                        </pre>
+  images/  fonts/</pre>
                     </div>
                     <div class="b s3">
-                        <h3>Single file</h3>
-                        <p>Everything packed into one .html file. Easy to email or drop into a chat, though larger.</p>
-                        <pre>
-                            <b>example.com.html</b>
-                            styles, images and fonts
-  embedded as data URIs
-                        </pre>
+                        <h3 data-i18n="b4.h">Single file</h3>
+                        <p data-i18n="b4.p">Everything packed into one .html file. Easy to email or drop into a chat, though larger.</p>
+                        <pre><b>example.com.html</b>
+  styles, images and fonts
+  embedded as data URIs</pre>
                     </div>
                     <div class="b s3">
-                        <h3>Updates itself</h3>
-                        <p>A banner lists what changed. One click installs it and WebGrabber restarts.</p>
+                        <h3 data-i18n="b5.h">Updates itself</h3>
+                        <p data-i18n="b5.p">A banner lists what changed. One click installs it and WebGrabber restarts.</p>
                         <div class="banner" aria-hidden="true">
                             <div>
                                 <b>Update available</b>
@@ -1914,44 +1960,61 @@
                         </div>
                     </div>
                     <div class="b s3">
-                        <h3>Four themes</h3>
-                        <p>Dark, light, a Loy Krathong night and a birthday party. The app has all four, and the party message is yours to write. Try them on this page.</p>
+                        <h3 data-i18n="b6.h">Four themes</h3>
+                        <p data-i18n="b6.p">Dark, light, a Loy Krathong night and a birthday party. The app has all four, and the party message is yours to write. Try them on this page.</p>
                         <div class="picks" role="group" aria-label="Page theme">
                             <button type="button" class="pick" data-t="dark">
-                                <i style="background:#8b5cf6"></i>Dark
+                                <i style="background:#8b5cf6"></i><span data-i18n="t.dark">Dark</span>
                             </button>
                             <button type="button" class="pick" data-t="light">
-                                <i style="background:#f1eefa;box-shadow:inset 0 0 0 1px #cfc7e6"></i>Light
+                                <i style="background:#f1eefa;box-shadow:inset 0 0 0 1px #cfc7e6"></i><span data-i18n="t.light">Light</span>
                             </button>
                             <button type="button" class="pick" data-t="loy">
-                                <i style="background:#fbbf24"></i>Loy Krathong
+                                <i style="background:#fbbf24"></i><span data-i18n="t.loy">Loy Krathong</span>
                             </button>
                             <button type="button" class="pick" data-t="party">
-                                <i style="background:#f472b6"></i>Party
+                                <i style="background:#f472b6"></i><span data-i18n="t.party">Party</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-</ div></ section>
+</div>
+</section>
 <section id="steps">
     <div class="wrap">
-        <div class="eyebrow">How it works</div>
-        <h2>Three steps, in this order.</h2>
+        <div class="eyebrow" data-i18n="s.eyebrow">How it works</div>
+        <h2 data-i18n="s.h2">Three steps, in this order.</h2>
         <ol class="steps">
             <li>
-                <h3>Paste the address</h3>
-                <p>Type example.com or paste a full link. The bar under the field fills when the link looks valid.</p>
+                <h3 data-i18n="s1.h">Paste the address</h3>
+                <p data-i18n="s1.p">Type example.com or paste a full link. The bar under the field fills when the link looks valid.</p>
             </li>
             <li>
-                <h3>Choose a folder</h3>
-                <p>Pick where copies go. WebGrabber remembers it, and your recent sites, for next time.</p>
+                <h3 data-i18n="s2.h">Choose a folder</h3>
+                <p data-i18n="s2.p">Pick where copies go. WebGrabber remembers it, and your recent sites, for next time.</p>
             </li>
             <li>
-                <h3>Press Download</h3>
-                <p>Watch it run, then open the copy in your browser or jump straight to the folder.</p>
+                <h3 data-i18n="s3.h">Press Download</h3>
+                <p data-i18n="s3.p">Watch it run, then open the copy in your browser or jump straight to the folder.</p>
             </li>
         </ol>
+    </div>
+</section>
+<section id="faq" style="padding-top:0">
+    <div class="wrap">
+        <div class="eyebrow" data-i18n="faq.eyebrow">Questions</div>
+        <h2 data-i18n="faq.h2">Quick answers.</h2>
+        <div class="faq">
+            <details><summary data-i18n="faq.q1.q">Is WebGrabber free?</summary><p data-i18n-html="faq.q1.a">Yes. The download is free. Get the latest build from the download section below or from GitHub Releases.</p></details>
+            <details><summary data-i18n="faq.q2.q">Which systems does it run on?</summary><p data-i18n-html="faq.q2.a">Windows 10 and 11, 64-bit. It needs the Microsoft Edge WebView2 runtime, which comes with Windows 11 and current Windows 10.</p></details>
+            <details><summary data-i18n="faq.q3.q">Why does Windows show a blue warning?</summary><p data-i18n-html="faq.q3.a">The app is not code-signed yet, so Windows warns about it. Choose <strong>More info</strong>, then <strong>Run anyway</strong>. If you are unsure, the full source code is on GitHub.</p></details>
+            <details><summary data-i18n="faq.q4.q">Separate files or a single file?</summary><p data-i18n-html="faq.q4.a">Separate files gives you a tidy folder with css, js, images and fonts that you can open, edit and host. A single file packs everything into one .html, which is easier to send but larger.</p></details>
+            <details><summary data-i18n="faq.q5.q">What happens if a file fails to download?</summary><p data-i18n-html="faq.q5.a">That file keeps its original online link, so the page does not break. Everything else is still saved and rewritten for offline use.</p></details>
+            <details><summary data-i18n="faq.q6.q">How do updates work?</summary><p data-i18n-html="faq.q6.a">On start, WebGrabber checks for a newer build. If there is one, a banner lists what changed, and one click installs it and restarts the app.</p></details>
+            <details><summary data-i18n="faq.q7.q">Where are my copies saved?</summary><p data-i18n-html="faq.q7.a">In the folder you choose, and WebGrabber remembers it. Each copy gets its own folder named like example.com_20261124_141502, or a single example.com.html file.</p></details>
+            <details><summary data-i18n="faq.q8.q">Can I copy any website?</summary><p data-i18n-html="faq.q8.a">Only grab sites you have the right to copy. WebGrabber saves what a page loads, but that does not give you permission to reuse it.</p></details>
+        </div>
     </div>
 </section>
 <section id="download" style="padding-top:0">
@@ -1959,8 +2022,8 @@
         <div class="dl">
             <img class="logo-img logo-main" src="data:image/png;base64,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" alt="WebGrabber" width="76" height="76">
             <img class="logo-img logo-light" src="data:image/png;base64,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" alt="WebGrabber" width="76" height="76">
-            <div class="eyebrow">Free download</div>
-            <h2>Get WebGrabber.</h2>
+            <div class="eyebrow" data-i18n="d.eyebrow">Free download</div>
+            <h2 data-i18n="d.h2">Get WebGrabber.</h2>
             <div class="cta">
                 <a class="btn btn-main" href="https://github.com/b62082826-gif/Web-Cloner/releases/latest/download/WebGrabberPro-win-x64.zip">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1970,39 +2033,37 @@
                     WebGrabberPro-win-x64.zip
         
                 </a>
-                <a class="btn btn-ghost" href="https://github.com/b62082826-gif/Web-Cloner/releases">All releases</a>
-                <a class="btn btn-ghost" href="https://discord.com/invite/cwxeXehAFX">Join our Discord</a>
+                <a class="btn btn-ghost" href="https://github.com/b62082826-gif/Web-Cloner/releases" data-i18n="d.all">All releases</a>
+                <a class="btn btn-ghost" href="https://discord.com/invite/cwxeXehAFX" data-i18n="join">Join our Discord</a>
             </div>
             <div class="kv">
                 <div>
-                    <span>Version</span>
+                    <span data-i18n="kv.ver">Version</span>
                     <b id="vKv">build 40</b>
                 </div>
                 <div>
-                    <span>Platform</span>
-                    <b>Windows 10 / 11, x64</b>
+                    <span data-i18n="kv.plat">Platform</span>
+                    <b data-i18n="kv.os">Windows 10 / 11, x64</b>
                 </div>
                 <div>
-                    <span>Size</span>
+                    <span data-i18n="kv.size">Size</span>
                     <b id="sizeKv">65.3 MB</b>
                 </div>
                 <div>
-                    <span>Install</span>
-                    <b>unzip and run</b>
+                    <span data-i18n="kv.inst">Install</span>
+                    <b data-i18n="kv.run">unzip and run</b>
                 </div>
             </div>
-            <div class="note">
-                <strong>Windows shows a blue warning?</strong> The app is not code-signed yet. Choose <strong>More info</strong>, then <strong>Run anyway</strong>. WebGrabber needs the Microsoft Edge WebView2 runtime, which comes with Windows 11 and current Windows 10. Only grab sites you have the right to copy.
-            </div>
+            <div class="note" data-i18n-html="note"><strong>Windows shows a blue warning?</strong> The app is not code-signed yet. Choose <strong>More info</strong>, then <strong>Run anyway</strong>. WebGrabber needs the Microsoft Edge WebView2 runtime, which comes with Windows 11 and current Windows 10. Only grab sites you have the right to copy.</div>
         </div>
     </div>
 </section>
 <div class="wrap">
     <footer>
-        <span>WebGrabber, built with .NET 8 and WebView2.</span>
+        <span data-i18n="foot.built">WebGrabber, built with .NET 8 and WebView2.</span>
         <span style="display:flex;gap:20px">
             <a href="https://discord.com/invite/cwxeXehAFX">Discord</a>
-            <a href="https://github.com/b62082826-gif/Web-Cloner">Source on GitHub</a>
+            <a href="https://github.com/b62082826-gif/Web-Cloner" data-i18n="foot.src">Source on GitHub</a>
         </span>
     </footer>
 </div>
@@ -2165,13 +2226,157 @@
                 });
                 if (!best)
                     return;
-                document.getElementById("vMeta").textContent = "Build " + best.n + ", latest";
-                document.getElementById("vKv").textContent = "build " + best.n;
-                document.getElementById("sizeKv").textContent = best.size;
-                document.getElementById("bannerSub").textContent = "Build " + best.n + " \u00b7 " + best.size;
+                if (window.wgSetVersion)
+                    window.wgSetVersion(best.n, best.size);
             }).catch(function() {});
         } catch (e) {}
     }
     )();
 </script>
-</ body></ html>
+
+<script>
+/* Thai / English. The app mock in the first screen stays English because the app itself is English. */
+(function() {
+    var TH = {
+    "nav.features": "ฟีเจอร์",
+    "nav.steps": "วิธีใช้",
+    "nav.faq": "ถาม-ตอบ",
+    "nav.download": "ดาวน์โหลด",
+    "hero.eyebrow": "โปรแกรมดาวน์โหลดเว็บไซต์สำหรับ Windows",
+    "hero.h1": "มา<em>เก็บ</em>เว็บไซต์กันเถอะ",
+    "hero.lede": "วางลิงก์เดียว WebGrabber จะบันทึกหน้าเว็บพร้อมรูปภาพ ฟอนต์ และสไตล์ เพื่อให้เปิดดูแบบออฟไลน์ได้เหมือนที่คุณเห็นทุกประการ",
+    "hero.download": "ดาวน์โหลดสำหรับ Windows",
+    "join": "เข้าร่วม Discord ของเรา",
+    "meta.os": "Windows 10 / 11 แบบ 64 บิต",
+    "meta.upd": "อัปเดตตัวเองได้",
+    "f.eyebrow": "มันทำอะไรได้บ้าง",
+    "f.h2": "ใส่ลิงก์เดียว ได้สำเนาที่ใช้งานได้กลับมา",
+    "f.sub": "WebGrabber อ่านหน้าเว็บ หาไฟล์ที่ต้องใช้ทั้งหมด ดาวน์โหลดพร้อมกัน แล้วแก้ลิงก์ให้ไม่ชี้กลับไปยังอินเทอร์เน็ต",
+    "b1.h": "ดาวน์โหลดหลายไฟล์พร้อมกัน",
+    "b1.p": "หน้าเว็บ สไตล์ชีต สคริปต์ ฟอนต์ และรูปภาพดาวน์โหลดแบบขนาน หน้าใหญ่ๆ จึงเสร็จในไม่กี่วินาที ไฟล์ไหนที่โหลดไม่ได้จะคงลิงก์ออนไลน์เดิมไว้ หน้าเว็บจึงไม่พัง",
+    "b2.h": "ลิงก์ที่ใช้งานออฟไลน์ได้",
+    "b2.p": "ฟอนต์และภาพพื้นหลังที่อยู่ใน CSS ก็ถูกบันทึกด้วย และแก้ URL ให้ใหม่",
+    "b3.h": "ไฟล์แยกกัน",
+    "b3.p": "โฟลเดอร์ที่เป็นระเบียบ เปิด แก้ไข และนำไปโฮสต์ได้ ไฟล์แต่ละประเภทอยู่ในโฟลเดอร์ย่อยของตัวเอง",
+    "b4.h": "ไฟล์เดียว",
+    "b4.p": "ทุกอย่างรวมอยู่ในไฟล์ .html ไฟล์เดียว ส่งอีเมลหรือส่งในแชทได้ง่าย แต่ไฟล์จะใหญ่กว่า",
+    "b5.h": "อัปเดตตัวเอง",
+    "b5.p": "แบนเนอร์จะแสดงสิ่งที่เปลี่ยน กดครั้งเดียวก็ติดตั้ง แล้ว WebGrabber จะเริ่มใหม่",
+    "b6.h": "สี่ธีม",
+    "b6.p": "มืด สว่าง คืนลอยกระทง และปาร์ตี้วันเกิด ในแอปมีครบทั้งสี่ธีม และข้อความในธีมปาร์ตี้เขียนเองได้ ลองสลับดูบนหน้านี้ได้เลย",
+    "t.dark": "มืด",
+    "t.light": "สว่าง",
+    "t.loy": "ลอยกระทง",
+    "t.party": "ปาร์ตี้",
+    "s.eyebrow": "วิธีใช้งาน",
+    "s.h2": "สามขั้นตอน ตามลำดับนี้",
+    "s1.h": "วางที่อยู่เว็บ",
+    "s1.p": "พิมพ์ example.com หรือวางลิงก์เต็ม แถบใต้ช่องจะเต็มเมื่อลิงก์ดูถูกต้อง",
+    "s2.h": "เลือกโฟลเดอร์",
+    "s2.p": "เลือกที่เก็บสำเนา WebGrabber จะจำโฟลเดอร์นั้นและเว็บล่าสุดที่คุณใช้ไว้สำหรับครั้งหน้า",
+    "s3.h": "กดดาวน์โหลด",
+    "s3.p": "ดูการทำงาน แล้วเปิดสำเนาในเบราว์เซอร์ หรือไปที่โฟลเดอร์ได้ทันที",
+    "faq.eyebrow": "คำถามที่พบบ่อย",
+    "faq.h2": "ตอบสั้นๆ ที่นี่",
+    "faq.q1.q": "WebGrabber ใช้ฟรีไหม?",
+    "faq.q1.a": "ใช้ฟรี ดาวน์โหลดเวอร์ชันล่าสุดได้จากส่วนดาวน์โหลดด้านล่าง หรือจาก GitHub Releases",
+    "faq.q2.q": "ใช้กับระบบอะไรได้บ้าง?",
+    "faq.q2.a": "Windows 10 และ 11 แบบ 64 บิต ต้องมี Microsoft Edge WebView2 runtime ซึ่งมีมาให้ใน Windows 11 และ Windows 10 ที่อัปเดตล่าสุด",
+    "faq.q3.q": "ทำไม Windows ถึงขึ้นหน้าต่างเตือนสีน้ำเงิน?",
+    "faq.q3.a": "เพราะแอปยังไม่ได้ลงนามโค้ด Windows จึงแสดงคำเตือน ให้เลือก <strong>More info</strong> แล้วกด <strong>Run anyway</strong> ถ้าไม่แน่ใจ ซอร์สโค้ดทั้งหมดดูได้บน GitHub",
+    "faq.q4.q": "เลือกไฟล์แยกหรือไฟล์เดียวดี?",
+    "faq.q4.a": "ไฟล์แยกจะได้โฟลเดอร์ที่เป็นระเบียบ มี css, js, images และ fonts เปิด แก้ไข และนำไปโฮสต์ได้ ส่วนไฟล์เดียวรวมทุกอย่างไว้ใน .html ไฟล์เดียว ส่งต่อง่ายกว่าแต่ไฟล์ใหญ่กว่า",
+    "faq.q5.q": "ถ้าไฟล์ไหนดาวน์โหลดไม่สำเร็จจะเกิดอะไรขึ้น?",
+    "faq.q5.a": "ไฟล์นั้นจะคงลิงก์ออนไลน์เดิมไว้ หน้าเว็บจึงไม่พัง ส่วนไฟล์อื่นยังถูกบันทึกและแก้ลิงก์ให้ใช้ออฟไลน์ได้ตามปกติ",
+    "faq.q6.q": "ระบบอัปเดตทำงานอย่างไร?",
+    "faq.q6.a": "ตอนเปิดโปรแกรม WebGrabber จะเช็กว่ามีเวอร์ชันใหม่ไหม ถ้ามี แบนเนอร์จะแสดงสิ่งที่เปลี่ยน กดครั้งเดียวก็ติดตั้งและเริ่มโปรแกรมใหม่",
+    "faq.q7.q": "สำเนาที่บันทึกอยู่ที่ไหน?",
+    "faq.q7.a": "อยู่ในโฟลเดอร์ที่คุณเลือก และ WebGrabber จะจำไว้ให้ แต่ละสำเนาจะมีโฟลเดอร์ของตัวเอง ตั้งชื่อประมาณ example.com_20261124_141502 หรือเป็นไฟล์ example.com.html ไฟล์เดียว",
+    "faq.q8.q": "คัดลอกเว็บไซต์ไหนก็ได้ใช่ไหม?",
+    "faq.q8.a": "ควรบันทึกเฉพาะเว็บไซต์ที่คุณมีสิทธิ์คัดลอก WebGrabber บันทึกสิ่งที่หน้าเว็บโหลดมา แต่นั่นไม่ได้ให้สิทธิ์คุณนำไปใช้ซ้ำ",
+    "d.eyebrow": "ดาวน์โหลดฟรี",
+    "d.h2": "ดาวน์โหลด WebGrabber",
+    "d.all": "ดูเวอร์ชันทั้งหมด",
+    "kv.ver": "เวอร์ชัน",
+    "kv.plat": "แพลตฟอร์ม",
+    "kv.size": "ขนาด",
+    "kv.inst": "การติดตั้ง",
+    "kv.os": "Windows 10 / 11 แบบ x64",
+    "kv.run": "แตกซิปแล้วรันได้เลย",
+    "note": "<strong>Windows ขึ้นหน้าต่างเตือนสีน้ำเงิน?</strong> แอปยังไม่ได้ลงนามโค้ด ให้เลือก <strong>More info</strong> แล้วกด <strong>Run anyway</strong> WebGrabber ต้องใช้ Microsoft Edge WebView2 runtime ซึ่งมีมาให้ใน Windows 11 และ Windows 10 ที่อัปเดตล่าสุด และควรบันทึกเฉพาะเว็บไซต์ที่คุณมีสิทธิ์คัดลอก",
+    "foot.built": "WebGrabber สร้างด้วย .NET 8 และ WebView2",
+    "foot.src": "ซอร์สโค้ดบน GitHub"
+};
+    var DESC = {
+        en: "Paste a link and WebGrabber saves the page with its images, fonts and styles, so it opens offline exactly as you saw it.",
+        th: "วางลิงก์เดียว WebGrabber จะบันทึกหน้าเว็บพร้อมรูปภาพ ฟอนต์ และสไตล์ เพื่อให้เปิดดูแบบออฟไลน์ได้เหมือนที่คุณเห็นทุกประการ"
+    };
+    var TITLE = {
+        en: "WebGrabber - Website downloader for Windows",
+        th: "WebGrabber - โปรแกรมดาวน์โหลดเว็บไซต์สำหรับ Windows"
+    };
+    var root = document.documentElement;
+    var btn = document.getElementById("langBtn");
+    var nodes = Array.prototype.slice.call(document.querySelectorAll("[data-i18n],[data-i18n-html]"));
+    var EN = {};
+    nodes.forEach(function(el) {
+        var key = el.getAttribute("data-i18n") || el.getAttribute("data-i18n-html");
+        if (!(key in EN))
+            EN[key] = el.hasAttribute("data-i18n-html") ? el.innerHTML.trim() : el.textContent.trim();
+    });
+
+    var ver = { n: 40, size: "65.3 MB" };
+    function el(id) { return document.getElementById(id); }
+    function renderVersion(lang) {
+        var th = lang === "th";
+        el("vMeta").textContent = th ? "บิลด์ " + ver.n + " ล่าสุด" : "Build " + ver.n + ", latest";
+        el("vKv").textContent = th ? "บิลด์ " + ver.n : "build " + ver.n;
+        el("sizeKv").textContent = ver.size;
+        el("bannerSub").textContent = (th ? "บิลด์ " : "Build ") + ver.n + " \u00b7 " + ver.size;
+    }
+
+    var current = "en";
+    function apply(lang) {
+        current = lang;
+        var dict = lang === "th" ? TH : EN;
+        nodes.forEach(function(n) {
+            var isHtml = n.hasAttribute("data-i18n-html");
+            var key = n.getAttribute(isHtml ? "data-i18n-html" : "data-i18n");
+            var v = dict[key];
+            if (v === undefined)
+                return;
+            if (isHtml)
+                n.innerHTML = v;
+            else
+                n.textContent = v;
+        });
+        root.setAttribute("lang", lang);
+        document.title = TITLE[lang];
+        var m = document.querySelector('meta[name="description"]');
+        if (m)
+            m.setAttribute("content", DESC[lang]);
+        btn.textContent = lang === "th" ? "EN" : "ไทย";
+        btn.setAttribute("aria-label", lang === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย");
+        renderVersion(lang);
+    }
+
+    window.wgSetVersion = function(n, size) {
+        ver.n = n;
+        ver.size = size;
+        renderVersion(current);
+    };
+
+    var saved = null;
+    try { saved = localStorage.getItem("wg-lang"); } catch (e) {}
+    var guess = (navigator.language || "").toLowerCase().indexOf("th") === 0 ? "th" : "en";
+    apply(saved === "th" || saved === "en" ? saved : guess);
+
+    btn.addEventListener("click", function() {
+        var next = current === "th" ? "en" : "th";
+        apply(next);
+        try { localStorage.setItem("wg-lang", next); } catch (e) {}
+    });
+})();
+</script>
+</body>
+</html>
