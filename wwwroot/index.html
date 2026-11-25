@@ -162,7 +162,7 @@
                 </section>
 
                 <div class="cta">
-                    <button id="download" class="btn-white" type="button">
+                    <button id="download" class="btn-white" type="button" aria-describedby="note">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>
                         <span>Download website</span>
                     </button>
@@ -256,11 +256,19 @@
                 <p class="lede center-lede err-msg" id="errMsg"></p>
 
                 <div class="done-actions">
-                    <button id="backError" class="btn-white" type="button">Go back</button>
+                    <button id="retry" class="btn-white" type="button">Try again</button>
+                    <button id="backError" class="btn-dark" type="button">Go back</button>
                 </div>
             </div>
         </main>
     </div>
+
+    <div class="toast" id="toast" hidden>
+        <span id="toastText"></span>
+        <button id="toastAction" class="toast-action" type="button">Undo</button>
+        <button id="toastClose" class="toast-x" type="button" aria-label="Dismiss">&times;</button>
+    </div>
+    <div class="sr-only" id="live" role="status" aria-live="polite"></div>
 
     <script src="app.js"></script>
 </body>

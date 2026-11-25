@@ -280,8 +280,19 @@ public sealed class MainForm : Form
 
     private async Task ApplyUpdateAsync()
     {
-        if (_update == null || _updating || _isDownloading)
+        if (_update == null || _updating)
             return;
+
+        if (_isDownloading)
+        {
+            Post(new
+            {
+                type = "updateError",
+                message = "Finish or cancel the current download first."
+            });
+
+            return;
+        }
 
         _updating = true;
 

@@ -1,6 +1,9 @@
 # What's new
 
 ## Latest
+- Clearing recent sites can be undone for 10 seconds
+- Failed downloads have a Try again button and read out the problem
+- Cancel and Update now show they are working and ignore a second click; updating while a download runs now explains why it waits
 - New Party theme with bunting and floating balloons. Click the message chip in the title bar to write your own text (for example a name or Happy New Year) and pick the party color
 - Loy Krathong and birthday theme: midnight river, floating krathong, lanterns and confetti on the finish screen. The sun button now cycles dark, light and festival; it opens in the festival theme on 24 to 26 November 2026
 - Fresh violet look: soft purple glow, new headline font and a purple progress bar

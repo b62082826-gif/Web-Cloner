@@ -107,6 +107,48 @@ function isValidUrl(value) {
     }
 }
 
+/* ---------- toast with undo, and screen reader announcements ---------- */
+
+let toastTimer = null;
+let toastUndo = null;
+
+function announce(message) {
+    const live = $("live");
+
+    live.textContent = "";
+    setTimeout(() => { live.textContent = message; }, 50);
+}
+
+function hideToast() {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+    toastUndo = null;
+    $("toast").hidden = true;
+}
+
+// stays for 10 s, and while the pointer or keyboard focus is on it
+function showToast(message, undo) {
+    const box = $("toast");
+
+    $("toastText").textContent = message;
+    $("toastAction").hidden = !undo;
+    toastUndo = undo || null;
+    box.hidden = false;
+    announce(message + (undo ? " Undo is available." : ""));
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 10000);
+}
+
+function holdToast() {
+    clearTimeout(toastTimer);
+}
+
+function releaseToast() {
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 4000);
+}
+
 /* ---------- display ---------- */
 
 function setScreen(name) {
@@ -205,6 +247,9 @@ function showDone(data) {
 
     setScreen("done");
     celebrate();
+    announce("Saved " + hostOf(currentRequest?.url || "") + ", " +
+        formatBytes(data.bytes) + ", " + plural(files, "file") + ".");
+    setTimeout(() => $("openFile").focus(), 60);
 
     requestAnimationFrame(() => requestAnimationFrame(() => {
         $("barOk").style.width = (files / total * 100) + "%";
@@ -219,7 +264,11 @@ function showError(title, message, eyebrow = "Download failed") {
     $("errTitle").textContent = title;
     $("errMsg").textContent = message || "";
 
+    $("retry").hidden = !currentRequest;
+
     setScreen("error");
+    announce("Download failed. " + (message || ""));
+    setTimeout(() => ($("retry").hidden ? $("backError") : $("retry")).focus(), 60);
 }
 
 /* ---------- recent downloads ---------- */
@@ -297,7 +346,7 @@ function downloadWebsite() {
     showNote("");
     $("url").value = url;
 
-    currentRequest = { url, mode: getMode() };
+    currentRequest = { url, mode: getMode(), folder };
 
     send("download", {
         url,
@@ -310,6 +359,7 @@ function cancelDownload() {
     if (!isDownloading) return;
 
     send("cancel");
+    $("cancel").disabled = true;
     $("progressText").textContent = "Cancelling...";
 }
 
@@ -371,6 +421,7 @@ function handleWebMessage(event) {
 
         case "started":
             isDownloading = true;
+            $("cancel").disabled = false;
             clearLog();
             setProgress(0);
             $("runHost").textContent =
@@ -412,6 +463,7 @@ function handleWebMessage(event) {
 
         case "cancelled":
             isDownloading = false;
+            $("cancel").disabled = false;
             stopTimer();
             setScreen("home");
             showNote(data.message || "Download cancelled.", true);
@@ -586,6 +638,13 @@ function initializeApp() {
     $("updateNow").addEventListener("click", () => {
         if (updating) return;
 
+        if (isDownloading) {
+            $("updateTitle").textContent = "Finish your download first";
+            $("updateSub").textContent =
+                "Update after the download ends, or cancel it.";
+            return;
+        }
+
         $("updateNow").disabled = true;
         setUpdateProgress(0);
         send("update");
@@ -624,8 +683,42 @@ function initializeApp() {
     $("backError").addEventListener("click", backHome);
 
     $("clearHistory").addEventListener("click", () => {
+        const before = readHistory();
+
+        if (!before.length) return;
+
         store(STORE_HISTORY, "[]");
         renderHistory();
+
+        showToast("Cleared " + plural(before.length, "recent site") + ".", () => {
+            store(STORE_HISTORY, JSON.stringify(before));
+            renderHistory();
+            announce("Recent sites restored.");
+        });
+    });
+
+    $("toastAction").addEventListener("click", () => {
+        const undo = toastUndo;
+
+        hideToast();
+        if (undo) undo();
+    });
+
+    $("toastClose").addEventListener("click", hideToast);
+
+    $("toast").addEventListener("mouseenter", holdToast);
+    $("toast").addEventListener("mouseleave", releaseToast);
+    $("toast").addEventListener("focusin", holdToast);
+    $("toast").addEventListener("focusout", releaseToast);
+
+    $("retry").addEventListener("click", () => {
+        if (!currentRequest || isDownloading) return;
+
+        send("download", {
+            url: currentRequest.url,
+            outputFolder: currentRequest.folder,
+            mode: currentRequest.mode
+        });
     });
 
     $("url").addEventListener("input", () => {
