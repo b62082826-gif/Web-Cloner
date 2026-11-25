@@ -2284,3 +2284,77 @@ html[data-theme="party"] .party-decor {
         animation: none;
     }
 }
+
+/* ---------- toast with undo ---------- */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    z-index: 30;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: calc(100% - 32px);
+    padding: 12px 12px 12px 20px;
+    border: 1px solid var(--line-strong);
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--card-top), var(--card-bot));
+    box-shadow: 0 24px 60px -16px rgba(0, 0, 0, 0.85);
+    font-size: 14px;
+    animation: enter 0.2s ease both;
+}
+
+.toast[hidden] {
+    display: none;
+}
+
+.toast-action {
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--btn-bg, #fff);
+    color: var(--btn-fg, #111);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.toast-action[hidden] {
+    display: none;
+}
+
+.toast-x {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--faint);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.toast-x:hover {
+    background: var(--panel-2);
+    color: var(--text);
+}
+
+.btn-dark:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
