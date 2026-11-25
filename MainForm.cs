@@ -221,6 +221,14 @@ public sealed class MainForm : Form
                     OpenResult(root);
                     break;
 
+                case "openLink":
+                    OpenLink(root);
+                    break;
+
+                case "openPath":
+                    OpenPath(root);
+                    break;
+
                 case "update":
                     await ApplyUpdateAsync();
                     break;
@@ -366,6 +374,64 @@ public sealed class MainForm : Form
         }
     }
 
+    // เปิดเบราว์เซอร์ได้เฉพาะลิงก์ของโปรเจกต์นี้ ไม่รับ URL อื่นจากหน้า UI
+    private static readonly string[] AllowedLinks =
+    {
+        "https://discord.com/invite/cwxeXehAFX",
+        "https://github.com/b62082826-gif/Web-Cloner",
+        "https://b62082826-gif.github.io/Web-Cloner"
+    };
+
+    private static string? ReadString(JsonElement root, string name)
+    {
+        if (root.TryGetProperty("data", out var data) &&
+            data.ValueKind == JsonValueKind.Object &&
+            data.TryGetProperty(name, out var value) &&
+            value.ValueKind == JsonValueKind.String)
+        {
+            return value.GetString();
+        }
+
+        return null;
+    }
+
+    private static void OpenLink(JsonElement root)
+    {
+        var url = ReadString(root, "url");
+
+        if (url == null)
+            return;
+
+        var allowed = AllowedLinks.Any(prefix =>
+            url == prefix ||
+            (url.StartsWith(prefix, StringComparison.Ordinal) &&
+             url[prefix.Length] is '/' or '?' or '#'));
+
+        if (!allowed)
+            return;
+
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    // เปิดโฟลเดอร์ผลลัพธ์จากประวัติ: ต้องเป็นโฟลเดอร์ที่มี index.html อยู่จริงเท่านั้น
+    private void OpenPath(JsonElement root)
+    {
+        var path = ReadString(root, "path");
+
+        if (string.IsNullOrWhiteSpace(path) ||
+            !Path.IsPathRooted(path) ||
+            !File.Exists(Path.Combine(path, "index.html")))
+        {
+            Post(new { type = "pathMissing", path });
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo("explorer.exe", "\"" + path + "\"")
+        {
+            UseShellExecute = true
+        });
+    }
+
     private async Task StartDownloadAsync(DownloadRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.OutputFolder))
@@ -413,6 +479,7 @@ public sealed class MainForm : Form
                 uri.AbsoluteUri,
                 output,
                 request.Mode,
+                request.Depth,
                 progress,
                 cancel.Token
             );
@@ -427,7 +494,8 @@ public sealed class MainForm : Form
                 entry = result.EntryFile,
                 files = result.Files,
                 failed = result.Failed,
-                bytes = result.Bytes
+                bytes = result.Bytes,
+                pages = result.Pages
             });
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)

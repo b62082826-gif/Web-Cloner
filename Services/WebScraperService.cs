@@ -12,6 +12,8 @@ namespace WebGrabberPro.Services;
 public sealed class WebScraperService : IWebScraperService
 {
     private const int MaxFiles = 400;
+    private const int MaxFilesMultiPage = 1500;
+    private const int MaxPages = 40;
     private const int MaxFileSize = 25 * 1024 * 1024;
     private const int MaxConcurrentDownloads = 8;
 
@@ -58,6 +60,7 @@ public sealed class WebScraperService : IWebScraperService
         string url,
         string outputFolder,
         string mode,
+        int depth,
         IProgress<(int percent, string message)>? progress,
         CancellationToken token)
     {
@@ -72,7 +75,8 @@ public sealed class WebScraperService : IWebScraperService
         var single = string.Equals(
             mode, "single", StringComparison.OrdinalIgnoreCase);
 
-        var session = new Session(single, outputFolder, progress);
+        var session = new Session(
+            single, outputFolder, Math.Clamp(depth, 1, 3), progress);
 
         return await session.RunAsync(baseUri, token);
     }
@@ -176,6 +180,38 @@ public sealed class WebScraperService : IWebScraperService
                  value.StartsWith("tel:", StringComparison.OrdinalIgnoreCase) ||
                  value.StartsWith("sms:", StringComparison.OrdinalIgnoreCase) ||
                  value.StartsWith("about:", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static readonly HashSet<string> PageExtensions = new(
+        StringComparer.OrdinalIgnoreCase)
+    {
+        "", ".html", ".htm", ".shtml", ".php", ".asp", ".aspx", ".jsp"
+    };
+
+    private static string HostKey(Uri uri) =>
+        uri.Host.ToLowerInvariant().StartsWith("www.")
+            ? uri.Host.ToLowerInvariant()[4..]
+            : uri.Host.ToLowerInvariant();
+
+    // หน้าเดียวกันที่สะกดต่างกัน (/a กับ /a/) ต้องได้ key เดียวกัน
+    private static string PageKey(Uri uri)
+    {
+        var path = uri.AbsolutePath.TrimEnd('/');
+
+        return HostKey(uri) + (path.Length == 0 ? "/" : path) + uri.Query;
+    }
+
+    private static bool IsPageLink(Uri uri, Uri site) =>
+        IsHttp(uri) &&
+        HostKey(uri) == HostKey(site) &&
+        PageExtensions.Contains(Path.GetExtension(uri.AbsolutePath));
+
+    private sealed class PageDoc
+    {
+        public Uri Uri { get; init; } = null!;
+        public HtmlDocument Document { get; init; } = null!;
+        public List<(HtmlNode node, Uri target)> Links { get; init; } = new();
+        public string FileName { get; set; } = "";
     }
 
     private static string EscapeAttr(string value) =>
@@ -394,7 +430,10 @@ public sealed class WebScraperService : IWebScraperService
     private sealed class Session
     {
         private readonly bool _single;
+        private readonly int _depth;
+        private readonly int _maxFiles;
         private readonly string _out;
+        private List<(HtmlNode node, Uri target)> _links = new();
         private readonly IProgress<(int percent, string message)>? _progress;
 
         private readonly ConcurrentDictionary<string, Lazy<Task<Asset?>>>
@@ -417,9 +456,12 @@ public sealed class WebScraperService : IWebScraperService
         public Session(
             bool single,
             string outputFolder,
+            int depth,
             IProgress<(int percent, string message)>? progress)
         {
             _single = single;
+            _depth = depth;
+            _maxFiles = depth > 1 ? MaxFilesMultiPage : MaxFiles;
             _out = outputFolder;
             _progress = progress;
         }
@@ -429,13 +471,126 @@ public sealed class WebScraperService : IWebScraperService
         {
             _ct = ct;
 
-            _progress?.Report((5, "Downloading the page..."));
+            var pages = new List<PageDoc>();
+            var seen = new HashSet<string> { PageKey(pageUri) };
+            var queue = new Queue<(Uri uri, int level)>();
+
+            queue.Enqueue((pageUri, 1));
+
+            while (queue.Count > 0)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var (uri, level) = queue.Dequeue();
+                var isRoot = pages.Count == 0;
+
+                PageDoc? page;
+
+                try
+                {
+                    page = await ProcessPageAsync(uri, isRoot, pages.Count + 1);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch when (!isRoot)
+                {
+                    // หน้าลูกหน้าไหนโหลดไม่ได้ก็ข้าม ลิงก์เดิมยังเป็น URL เต็ม
+                    continue;
+                }
+
+                if (page == null)
+                    continue;
+
+                pages.Add(page);
+
+                if (level >= _depth)
+                    continue;
+
+                foreach (var (_, target) in page.Links)
+                {
+                    if (seen.Count >= MaxPages)
+                        break;
+
+                    if (IsPageLink(target, pageUri) &&
+                        seen.Add(PageKey(target)))
+                    {
+                        queue.Enqueue((target, level + 1));
+                    }
+                }
+            }
+
+            // ตั้งชื่อไฟล์ของแต่ละหน้า แล้วแก้ลิงก์ระหว่างหน้าให้ชี้ไฟล์ในเครื่อง
+            var files = new Dictionary<string, string>();
+
+            foreach (var page in pages)
+            {
+                var key = PageKey(page.Uri);
+
+                page.FileName = page == pages[0]
+                    ? "index.html"
+                    : PathSanitizer.FileStem(
+                          page.Uri.AbsolutePath.TrimEnd('/')) + "-" +
+                      Convert.ToHexString(SHA256.HashData(
+                          Encoding.UTF8.GetBytes(key)))[..8]
+                          .ToLowerInvariant() + ".html";
+
+                files[key] = page.FileName;
+                files[PageKey(pageUri)] = pages[0].FileName;
+            }
+
+            foreach (var page in pages)
+            {
+                foreach (var (node, target) in page.Links)
+                {
+                    if (files.TryGetValue(PageKey(target), out var local))
+                        node.SetAttributeValue("href", local + target.Fragment);
+                }
+
+                NormalizeCharset(page.Document);
+
+                await File.WriteAllTextAsync(
+                    Path.Combine(_out, page.FileName),
+                    page.Document.DocumentNode.OuterHtml,
+                    new UTF8Encoding(false),
+                    ct);
+            }
+
+            _progress?.Report((100, "Website saved"));
+
+            return new DownloadResult(
+                Path.Combine(_out, pages[0].FileName),
+                _ok,
+                _failed,
+                Interlocked.Read(ref _bytes),
+                pages.Count);
+        }
+
+        private async Task<PageDoc?> ProcessPageAsync(
+            Uri pageUri, bool isRoot, int number)
+        {
+            var ct = _ct;
+
+            if (isRoot)
+                _progress?.Report((5, "Downloading the page..."));
+            else
+                Report("Page " + number + ": " + pageUri.AbsolutePath);
 
             using var request = new HttpRequestMessage(HttpMethod.Get, pageUri);
             using var response = await Http.SendAsync(
                 request, HttpCompletionOption.ResponseHeadersRead, ct);
 
             response.EnsureSuccessStatusCode();
+
+            var mediaType = response.Content.Headers.ContentType?.MediaType;
+
+            // หน้าลูกต้องเป็น HTML จริง (ลิงก์อาจชี้ไปไฟล์ PDF/รูป)
+            if (!isRoot && mediaType != null &&
+                !mediaType.Contains("html", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
 
             _pageUri = response.RequestMessage?.RequestUri ?? pageUri;
 
@@ -462,7 +617,10 @@ public sealed class WebScraperService : IWebScraperService
                 baseNode.Remove();
             }
 
-            _progress?.Report((15, "Looking for files in the page..."));
+            if (isRoot)
+                _progress?.Report((15, "Looking for files in the page..."));
+
+            _links = new List<(HtmlNode node, Uri target)>();
 
             var jobs = new List<Task<Action>>();
 
@@ -487,23 +645,12 @@ public sealed class WebScraperService : IWebScraperService
 
             ct.ThrowIfCancellationRequested();
 
-            NormalizeCharset(document);
-
-            var entry = Path.Combine(_out, "index.html");
-
-            await File.WriteAllTextAsync(
-                entry,
-                document.DocumentNode.OuterHtml,
-                new UTF8Encoding(false),
-                ct);
-
-            _progress?.Report((100, "Website saved"));
-
-            return new DownloadResult(
-                entry,
-                _ok,
-                _failed,
-                Interlocked.Read(ref _bytes));
+            return new PageDoc
+            {
+                Uri = _pageUri,
+                Document = document,
+                Links = _links
+            };
         }
 
         // -------------------- รวบรวมงานจาก DOM --------------------
@@ -533,7 +680,11 @@ public sealed class WebScraperService : IWebScraperService
 
                 case "a":
                 case "area":
-                    // ลิงก์ไปหน้าอื่นไม่ดาวน์โหลด แต่แปลงเป็น URL เต็มให้กดแล้วไปเว็บจริง
+                    // ลิงก์ไปหน้าอื่นแปลงเป็น URL เต็มให้กดแล้วไปเว็บจริง
+                    // ถ้าเปิดโหลดหลายหน้า หน้าที่โหลดมาด้วยจะถูกแก้ให้ชี้ไฟล์ในเครื่องทีหลัง
+                    if (_depth > 1 && name == "a")
+                        NoteLink(node, baseUri);
+
                     jobs.Add(Task.FromResult(
                         MakeAbsolute(node, "href", baseUri)));
                     break;
@@ -596,6 +747,19 @@ public sealed class WebScraperService : IWebScraperService
                         }
                     }
                     break;
+            }
+        }
+
+        private void NoteLink(HtmlNode node, Uri baseUri)
+        {
+            var raw = HtmlEntity.DeEntitize(
+                node.GetAttributeValue("href", "")).Trim();
+
+            if (IsFetchable(raw) &&
+                Uri.TryCreate(baseUri, raw, out var uri) &&
+                IsHttp(uri))
+            {
+                _links.Add((node, uri));
             }
         }
 
@@ -1099,7 +1263,7 @@ public sealed class WebScraperService : IWebScraperService
 
         private async Task<Asset?> LoadAssetAsync(Uri uri, string key)
         {
-            if (Interlocked.Increment(ref _total) > MaxFiles)
+            if (Interlocked.Increment(ref _total) > _maxFiles)
             {
                 Interlocked.Decrement(ref _total);
                 return null;
