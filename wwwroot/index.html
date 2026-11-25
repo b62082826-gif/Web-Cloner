@@ -63,6 +63,15 @@
             </div>
 
             <div class="window-buttons">
+                <button id="historyBtn" title="History" aria-label="History">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 4.6V8l2.3 1.5"/></svg>
+                </button>
+                <button id="discordBtn" data-link="https://discord.com/invite/cwxeXehAFX" title="Join our Discord" aria-label="Join our Discord">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H8l-3 2.2V11.5H2.5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"/><path d="M5.5 7.5h.01M10.5 7.5h.01"/></svg>
+                </button>
+                <button id="aboutBtn" title="About WebGrabber" aria-label="About WebGrabber">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6M8 5.2h.01"/></svg>
+                </button>
                 <button id="theme" title="Switch theme" aria-label="Switch theme">
                     <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="2.8"/><path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>
                 </button>
@@ -161,6 +170,23 @@
                     <button id="browse" class="chip" type="button">Browse</button>
                 </section>
 
+                <section class="card card-save card-depth">
+                    <div class="tile tile-sm" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="11" height="14" rx="2"/><path d="M17 8h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-1"/></svg>
+                    </div>
+
+                    <div class="save-text">
+                        <label for="depthGroup">Pages</label>
+                        <span class="depth-hint" id="depthHint"></span>
+                    </div>
+
+                    <div class="segmented" id="depthGroup" role="radiogroup" aria-label="How many pages to save">
+                        <label><input type="radio" name="depth" value="1" checked><span>This page</span></label>
+                        <label><input type="radio" name="depth" value="2"><span>+ Linked</span></label>
+                        <label><input type="radio" name="depth" value="3"><span>+ Deeper</span></label>
+                    </div>
+                </section>
+
                 <div class="cta">
                     <button id="download" class="btn-white" type="button" aria-describedby="note">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>
@@ -172,7 +198,7 @@
                 <div class="recent" id="recent">
                     <span class="recent-label">Recent</span>
                     <div class="chips" id="history"></div>
-                    <button id="clearHistory" class="link" type="button">Clear</button>
+                    <button id="seeHistory" class="link" type="button">See all</button>
                 </div>
             </div>
         </main>
@@ -241,6 +267,52 @@
                 </div>
 
                 <div class="path" id="donePath"></div>
+            </div>
+        </main>
+
+        <!-- ================= History ================= -->
+        <main class="screen screen-history" id="screenHistory">
+            <div class="column">
+                <div class="panel-head">
+                    <button id="historyBack" class="btn-dark btn-sm" type="button">&larr; Back</button>
+                    <div class="panel-title">
+                        <h2>History</h2>
+                        <p id="historyCount"></p>
+                    </div>
+                    <button id="historyClear" class="chip" type="button">Clear all</button>
+                </div>
+
+                <ul class="hist-list" id="historyList"></ul>
+
+                <div class="hist-empty" id="historyEmpty" hidden>
+                    <b>Nothing here yet</b>
+                    <span>Websites you download will show up here.</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- ================= About ================= -->
+        <main class="screen screen-about" id="screenAbout">
+            <div class="column column-narrow">
+                <div class="panel-head">
+                    <button id="aboutBack" class="btn-dark btn-sm" type="button">&larr; Back</button>
+                </div>
+
+                <div class="about-hero">
+                    <img class="logo logo-main" src="logo-main.png" alt="" width="64" height="64">
+                    <img class="logo logo-light" src="logo-light.png" alt="" width="64" height="64">
+                    <h2>WebGrabber</h2>
+                    <p id="aboutVer">Version</p>
+                    <p class="about-text">Saves a website with its images, fonts and styles so you can open it offline.</p>
+                </div>
+
+                <div class="about-links">
+                    <button type="button" class="btn-white" data-link="https://discord.com/invite/cwxeXehAFX">Join our Discord</button>
+                    <button type="button" class="btn-dark" data-link="https://github.com/b62082826-gif/Web-Cloner">GitHub</button>
+                    <button type="button" class="btn-dark" data-link="https://github.com/b62082826-gif/Web-Cloner/releases">All releases</button>
+                    <button type="button" class="btn-dark" data-link="https://github.com/b62082826-gif/Web-Cloner/issues">Report a problem</button>
+                    <button type="button" class="btn-dark" data-link="https://b62082826-gif.github.io/Web-Cloner/">Website</button>
+                </div>
             </div>
         </main>
 

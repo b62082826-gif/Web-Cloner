@@ -141,7 +141,9 @@ p {
 body[data-screen="home"] .screen-home,
 body[data-screen="running"] .screen-running,
 body[data-screen="done"] .screen-done,
-body[data-screen="error"] .screen-error {
+body[data-screen="error"] .screen-error,
+body[data-screen="history"] .screen-history,
+body[data-screen="about"] .screen-about {
     display: flex;
     animation: enter 0.28s ease both;
 }
@@ -2357,4 +2359,177 @@ html[data-theme="party"] .party-decor {
 .btn-dark:disabled {
     opacity: 0.55;
     cursor: default;
+}
+
+
+/* ---------- pages option, history and about ---------- */
+
+.depth-hint {
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.panel-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 3vh;
+    margin-bottom: 20px;
+}
+
+.panel-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.panel-title h2 {
+    margin: 0;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+}
+
+.panel-title p {
+    margin: 2px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.hist-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.hist-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px 16px 22px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--panel);
+}
+
+.hist-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.hist-main b {
+    font-size: 16px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hist-url,
+.hist-meta {
+    font-size: 13px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hist-meta {
+    color: var(--faint);
+}
+
+.hist-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.hist-del {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--faint);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.hist-del:hover {
+    background: var(--panel-2);
+    color: var(--text);
+}
+
+.hist-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 64px 0;
+    color: var(--muted);
+    text-align: center;
+}
+
+.hist-empty b {
+    font-size: 18px;
+    color: var(--text);
+}
+
+.hist-empty[hidden] {
+    display: none;
+}
+
+.column-narrow {
+    max-width: 560px;
+}
+
+.about-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 12px 0 28px;
+}
+
+.about-hero h2 {
+    margin: 10px 0 0;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+}
+
+.about-hero p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.about-text {
+    max-width: 380px;
+    margin-top: 8px !important;
+}
+
+.about-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.about-links button {
+    width: 100%;
+    justify-content: center;
+}
+
+@media (max-width: 760px) {
+    .hist-row {
+        flex-wrap: wrap;
+    }
+
+    .hist-actions {
+        width: 100%;
+    }
 }

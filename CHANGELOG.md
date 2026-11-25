@@ -1,6 +1,9 @@
 # What's new
 
 ## Latest
+- New History screen (clock button): every download with its date, files and size. Open its folder, download it again, or remove it (removing can be undone for 10 seconds)
+- Save more than one page: choose + Linked or + Deeper under Pages to also save the pages a site links to (up to 40). Links between them open the saved copies
+- New Discord button in the title bar, and an About screen (i button) with the version, GitHub, releases, Report a problem and the website
 - Clearing recent sites can be undone for 10 seconds
 - Failed downloads have a Try again button and read out the problem
 - Cancel and Update now show they are working and ignore a second click; updating while a download runs now explains why it waits

@@ -3,7 +3,8 @@
 const $ = (id) => document.getElementById(id);
 
 const MAX_LOG = 200;
-const MAX_HISTORY = 6;
+const MAX_HISTORY = 100;
+const RECENT_SHOWN = 6;
 
 const STORE_FOLDER = "webgrabber.folder";
 const STORE_MODE = "webgrabber.mode";
@@ -11,6 +12,7 @@ const STORE_HISTORY = "webgrabber.history";
 const STORE_THEME = "webgrabber.theme";
 const STORE_GREETING = "webgrabber.greeting";
 const STORE_PARTY = "webgrabber.party";
+const STORE_DEPTH = "webgrabber.depth";
 
 const MODE_HINTS = {
     separated: "Saves index.html plus css, js, images and fonts folders. Easy to edit.",
@@ -20,6 +22,7 @@ const MODE_HINTS = {
 let isDownloading = false;
 let startedAt = 0;
 let timer = null;
+let appBuild = "";
 let currentRequest = null; // the job in progress, used for the history entry
 
 /* ---------- helpers ---------- */
@@ -81,6 +84,10 @@ function hostOf(url) {
 function getMode() {
     return document.querySelector('input[name="mode"]:checked')?.value ||
         "separated";
+}
+
+function getDepth() {
+    return Number(document.querySelector('input[name="depth"]:checked')?.value) || 1;
 }
 
 function normalizeUrl(value) {
@@ -237,6 +244,7 @@ function showDone(data) {
 
     $("doneSub").textContent =
         hostOf(currentRequest?.url || "") +
+        ((Number(data.pages) || 1) > 1 ? " · " + plural(Number(data.pages), "page") : "") +
         (took ? " · took " + formatDuration(took) : "");
 
     $("donePath").textContent = data.path || "";
@@ -271,7 +279,7 @@ function showError(title, message, eyebrow = "Download failed") {
     setTimeout(() => ($("retry").hidden ? $("backError") : $("retry")).focus(), 60);
 }
 
-/* ---------- recent downloads ---------- */
+/* ---------- history (home chips + full list) ---------- */
 
 function readHistory() {
     try {
@@ -283,18 +291,34 @@ function readHistory() {
     }
 }
 
-function pushHistory(entry) {
-    const list = readHistory().filter((item) => item.url !== entry.url);
-
-    list.unshift(entry);
+function writeHistory(list) {
     store(STORE_HISTORY, JSON.stringify(list.slice(0, MAX_HISTORY)));
-
     renderHistory();
+    renderHistoryList();
 }
 
+function pushHistory(entry) {
+    writeHistory([entry, ...readHistory()]);
+}
+
+function fillUrl(url) {
+    $("url").value = url;
+    markInvalid(false);
+    updateUrlFill();
+    showNote("");
+    $("url").focus();
+}
+
+// the last few different sites, shown under the form
 function renderHistory() {
     const list = $("history");
-    const items = readHistory();
+    const seen = new Set();
+    const items = readHistory().filter((item) => {
+        if (seen.has(item.url)) return false;
+
+        seen.add(item.url);
+        return true;
+    }).slice(0, RECENT_SHOWN);
 
     list.innerHTML = "";
     $("recent").style.display = items.length ? "flex" : "none";
@@ -308,16 +332,145 @@ function renderHistory() {
         chip.title = item.url + " · " + plural(item.files, "file") +
             " · " + formatBytes(item.bytes);
 
-        chip.addEventListener("click", () => {
-            $("url").value = item.url;
-            markInvalid(false);
-            updateUrlFill();
-            showNote("");
-            $("url").focus();
-        });
-
+        chip.addEventListener("click", () => fillUrl(item.url));
         list.appendChild(chip);
     }
+}
+
+function formatWhen(time) {
+    try {
+        return new Date(time).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short"
+        });
+    } catch {
+        return "";
+    }
+}
+
+function renderHistoryList() {
+    const items = readHistory();
+    const list = $("historyList");
+
+    list.innerHTML = "";
+    $("historyEmpty").hidden = items.length > 0;
+    $("historyClear").hidden = items.length === 0;
+    $("historyCount").textContent = items.length
+        ? plural(items.length, "download")
+        : "";
+
+    for (const item of items) {
+        const row = document.createElement("li");
+        const main = document.createElement("div");
+        const actions = document.createElement("div");
+        const meta = [
+            formatWhen(item.time),
+            plural(item.files || 0, "file"),
+            formatBytes(item.bytes)
+        ];
+
+        if ((item.pages || 1) > 1) meta.splice(1, 0, plural(item.pages, "page"));
+
+        row.className = "hist-row";
+        main.className = "hist-main";
+        actions.className = "hist-actions";
+
+        const title = document.createElement("b");
+        const url = document.createElement("span");
+        const info = document.createElement("span");
+
+        title.textContent = hostOf(item.url);
+        url.className = "hist-url";
+        url.textContent = item.url;
+        info.className = "hist-meta";
+        info.textContent = meta.filter(Boolean).join(" · ");
+        main.append(title, url, info);
+
+        const open = document.createElement("button");
+        const again = document.createElement("button");
+        const del = document.createElement("button");
+
+        open.type = again.type = del.type = "button";
+        open.className = again.className = "chip";
+        open.textContent = "Open folder";
+        again.textContent = "Download again";
+        del.className = "hist-del";
+        del.textContent = "\u00d7";
+        del.setAttribute("aria-label", "Remove " + hostOf(item.url) + " from history");
+        del.title = "Remove from history";
+
+        open.disabled = !item.path;
+        open.addEventListener("click", () => send("openPath", { path: item.path }));
+        again.addEventListener("click", () => downloadAgain(item));
+        del.addEventListener("click", () => removeHistory(item));
+
+        actions.append(open, again, del);
+        row.append(main, actions);
+        list.appendChild(row);
+    }
+}
+
+function removeHistory(item) {
+    const before = readHistory();
+    const index = before.findIndex((x) => x.id === item.id && x.time === item.time);
+
+    if (index < 0) return;
+
+    writeHistory(before.filter((_, i) => i !== index));
+
+    showToast("Removed " + hostOf(item.url) + " from history. The saved files stay on disk.", () => {
+        writeHistory(before);
+        announce("History restored.");
+    });
+}
+
+function clearAllHistory() {
+    const before = readHistory();
+
+    if (!before.length) return;
+
+    writeHistory([]);
+
+    showToast("Cleared " + plural(before.length, "download") + " from history. The saved files stay on disk.", () => {
+        writeHistory(before);
+        announce("History restored.");
+    });
+}
+
+function downloadAgain(item) {
+    if (isDownloading) return;
+
+    const folder = item.folder || $("folder").value.trim();
+
+    if (!folder) {
+        showToast("Choose a folder to save into first (Back, then Browse).");
+        return;
+    }
+
+    currentRequest = {
+        url: item.url,
+        mode: item.mode || "separated",
+        depth: item.depth || 1,
+        folder
+    };
+
+    send("download", {
+        url: currentRequest.url,
+        outputFolder: folder,
+        mode: currentRequest.mode,
+        depth: currentRequest.depth
+    });
+}
+
+function showPanel(name) {
+    if (isDownloading) {
+        showToast("A download is running. Open this when it finishes.");
+        return;
+    }
+
+    if (name === "history") renderHistoryList();
+
+    setScreen(name);
 }
 
 /* ---------- main actions ---------- */
@@ -346,12 +499,13 @@ function downloadWebsite() {
     showNote("");
     $("url").value = url;
 
-    currentRequest = { url, mode: getMode(), folder };
+    currentRequest = { url, mode: getMode(), depth: getDepth(), folder };
 
     send("download", {
         url,
         outputFolder: folder,
-        mode: currentRequest.mode
+        mode: currentRequest.mode,
+        depth: currentRequest.depth
     });
 }
 
@@ -384,6 +538,16 @@ function updateModeHint() {
     $("modeHint").textContent = MODE_HINTS[getMode()] || "";
 }
 
+const DEPTH_HINTS = {
+    1: "Only the page you typed.",
+    2: "Also saves the pages it links to on the same site (up to 40).",
+    3: "Follows links two steps deep on the same site (up to 40 pages)."
+};
+
+function updateDepthHint() {
+    $("depthHint").textContent = DEPTH_HINTS[getDepth()] || "";
+}
+
 function backHome() {
     isDownloading = false;
     setScreen("home");
@@ -398,7 +562,9 @@ function handleWebMessage(event) {
 
     switch (data.type) {
         case "version":
-            $("ver").textContent = "build " + data.current;
+            appBuild = String(data.current);
+            $("ver").textContent = "build " + appBuild;
+            $("aboutVer").textContent = "Version 1.0." + appBuild + " (build " + appBuild + ")";
             break;
 
         case "update":
@@ -411,6 +577,10 @@ function handleWebMessage(event) {
 
         case "updateError":
             showUpdateError(data.message);
+            break;
+
+        case "pathMissing":
+            showToast("That folder is gone. It may have been moved or deleted.");
             break;
 
         case "folder":
@@ -452,9 +622,14 @@ function handleWebMessage(event) {
 
             if (currentRequest) {
                 pushHistory({
+                    id: Date.now().toString(36),
                     url: currentRequest.url,
                     mode: currentRequest.mode,
+                    depth: currentRequest.depth || 1,
+                    folder: currentRequest.folder,
+                    path: data.path || "",
                     files: Number(data.files) || 0,
+                    pages: Number(data.pages) || 1,
                     bytes: Number(data.bytes) || 0,
                     time: Date.now()
                 });
@@ -682,19 +857,23 @@ function initializeApp() {
     $("backDone").addEventListener("click", backHome);
     $("backError").addEventListener("click", backHome);
 
-    $("clearHistory").addEventListener("click", () => {
-        const before = readHistory();
+    $("seeHistory").addEventListener("click", () => showPanel("history"));
+    $("historyBtn").addEventListener("click", () => showPanel("history"));
+    $("aboutBtn").addEventListener("click", () => showPanel("about"));
+    $("historyBack").addEventListener("click", backHome);
+    $("aboutBack").addEventListener("click", backHome);
+    $("historyClear").addEventListener("click", clearAllHistory);
 
-        if (!before.length) return;
+    document.querySelectorAll("[data-link]").forEach((button) => {
+        button.addEventListener("click", () => send("openLink", { url: button.dataset.link }));
+    });
 
-        store(STORE_HISTORY, "[]");
-        renderHistory();
+    document.addEventListener("keydown", (event) => {
+        const screen = document.body.dataset.screen;
 
-        showToast("Cleared " + plural(before.length, "recent site") + ".", () => {
-            store(STORE_HISTORY, JSON.stringify(before));
-            renderHistory();
-            announce("Recent sites restored.");
-        });
+        if (event.key === "Escape" && (screen === "history" || screen === "about")) {
+            backHome();
+        }
     });
 
     $("toastAction").addEventListener("click", () => {
@@ -717,7 +896,8 @@ function initializeApp() {
         send("download", {
             url: currentRequest.url,
             outputFolder: currentRequest.folder,
-            mode: currentRequest.mode
+            mode: currentRequest.mode,
+            depth: currentRequest.depth || 1
         });
     });
 
@@ -729,6 +909,13 @@ function initializeApp() {
 
     $("url").addEventListener("keydown", (event) => {
         if (event.key === "Enter") downloadWebsite();
+    });
+
+    document.querySelectorAll('input[name="depth"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+            store(STORE_DEPTH, String(getDepth()));
+            updateDepthHint();
+        });
     });
 
     document.querySelectorAll('input[name="mode"]').forEach((radio) => {
@@ -760,7 +947,13 @@ function initializeApp() {
 
     if (radio) radio.checked = true;
 
+    const savedDepth = document.querySelector(
+        'input[name="depth"][value="' + load(STORE_DEPTH, "1") + '"]');
+
+    if (savedDepth) savedDepth.checked = true;
+
     updateModeHint();
+    updateDepthHint();
     updateUrlFill();
     setProgress(0);
     renderHistory();
