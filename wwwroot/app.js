@@ -860,6 +860,7 @@ function initializeApp() {
     $("seeHistory").addEventListener("click", () => showPanel("history"));
     $("historyBtn").addEventListener("click", () => showPanel("history"));
     $("aboutBtn").addEventListener("click", () => showPanel("about"));
+    $("footAbout").addEventListener("click", () => showPanel("about"));
     $("historyBack").addEventListener("click", backHome);
     $("aboutBack").addEventListener("click", backHome);
     $("historyClear").addEventListener("click", clearAllHistory);

@@ -3066,3 +3066,131 @@ html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"])
         animation: none;
     }
 }
+
+
+/* =====================================================================
+   HOME MARKUP: hero pill, feature row, footer (all themes use tokens)
+   ===================================================================== */
+
+.hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 10px;
+    margin-bottom: 18px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: rgba(var(--accent-rgb, 139, 92, 246), 0.10);
+    color: var(--accent-2, #c4b5fd);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.hero-pill i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 10px currentColor;
+    animation: pill-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pill-pulse {
+    50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+.features {
+    list-style: none;
+    margin: 44px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.features li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px 22px 22px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--panel);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s;
+}
+
+.features li:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-strong);
+}
+
+.features b {
+    font-size: 15px;
+    letter-spacing: -0.01em;
+}
+
+.features li > span:last-child {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--muted);
+}
+
+.f-ico {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 8px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(var(--accent-rgb, 139, 92, 246), 0.14);
+    color: var(--accent-2, #c4b5fd);
+}
+
+.f-ico svg {
+    width: 20px;
+    height: 20px;
+}
+
+.home-foot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--faint);
+}
+
+.home-foot span {
+    margin-right: auto;
+}
+
+@media (max-width: 860px) {
+    .features {
+        grid-template-columns: 1fr;
+    }
+}
+
+html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"]) .features li {
+    background: linear-gradient(180deg, var(--card-top), var(--card-bot));
+    box-shadow: var(--specular);
+}
+
+html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"]) .features li:hover {
+    border-color: rgba(var(--accent-rgb), 0.35);
+}
+
+html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"]) .f-ico {
+    border: 1px solid rgba(var(--accent-rgb), 0.28);
+    box-shadow: var(--specular), 0 8px 22px -10px rgba(var(--accent-rgb), 0.6);
+}
+
+html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"]) .features li {
+    animation: rise 0.7s var(--ease) both;
+}
+
+html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"]) .features li:nth-child(1) { animation-delay: 0.40s; }
+html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"]) .features li:nth-child(2) { animation-delay: 0.47s; }
+html:not([data-theme="light"]):not([data-theme="loy"]):not([data-theme="party"]) .features li:nth-child(3) { animation-delay: 0.54s; }
